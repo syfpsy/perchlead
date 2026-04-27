@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-app: 247 248 250;
+  --color-bg-panel: 255 255 255;
+  --color-border-soft: 230 232 238;
+  --color-border-firm: 215 219 227;
+}
+
+.dark {
+  --color-bg-app: 8 10 14;
+  --color-bg-panel: 13 16 22;
+  --color-border-soft: 30 34 44;
+  --color-border-firm: 42 47 60;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-feature-settings: "cv11", "ss03", "ss01", "ss04", "salt";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: rgb(var(--color-bg-app));
+  color: #0f1218;
+}
+.dark body {
+  color: #f0f2f6;
+}
+
+.surface-app {
+  background: rgb(var(--color-bg-app));
+}
+.surface-panel {
+  background: rgb(var(--color-bg-panel));
+}
+.border-soft {
+  border-color: rgb(var(--color-border-soft));
+}
+.border-firm {
+  border-color: rgb(var(--color-border-firm));
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-border-firm)) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-border-firm));
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.hairline-row + .hairline-row {
+  border-top: 1px solid rgb(var(--color-border-soft));
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-border-soft)) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgb(var(--color-border-soft)) 100%
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.6s linear infinite;
+}

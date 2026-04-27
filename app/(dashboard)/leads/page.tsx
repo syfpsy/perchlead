@@ -1,0 +1,367 @@
+"use client";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Input, Tab, Tabs } from "@heroui/react";
+import { BookmarkPlus, Download, Filter as FilterIcon, Inbox, Plus, Search, Sparkles, Upload } from "lucide-react";
+
+import { useSnapshot } from "@/lib/store/use-snapshot";
+import {
+  applyFilters,
+  buildLeadRows,
+  sortRows,
+  type SortKey,
+} from "@/lib/services/search-service";
+import {
+  deleteLead,
+  setLeadStatus,
+  suppressLead,
+} from "@/lib/services/lead-service";
+import { downloadCsv } from "@/lib/services/export-service";
+import { useToast } from "@/components/ui/toast";
+
+import { PageHeader } from "@/components/ui/page-header";
+import { LeadTable } from "@/components/leads/lead-table";
+import { LeadFilterBar } from "@/components/leads/lead-filters";
+import { BulkActionsBar } from "@/components/leads/bulk-actions";
+import { LeadCreateModal } from "@/components/leads/lead-create-modal";
+import { SaveListModal } from "@/components/leads/save-list-modal";
+import { EmptyState } from "@/components/ui/empty-state";
+import type { LeadFilters, LeadStatus } from "@/types";
+
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: "score", label: "Score" },
+  { key: "updated", label: "Updated" },
+  { key: "created", label: "Created" },
+  { key: "name", label: "Name" },
+];
+
+export default function LeadsPage() {
+  return (
+    <Suspense fallback={null}>
+      <LeadsPageInner />
+    </Suspense>
+  );
+}
+
+function LeadsPageInner() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const snapshot = useSnapshot();
+  const toast = useToast();
+
+  const [filters, setFilters] = useState<LeadFilters>({});
+  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [showFilters, setShowFilters] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [createOpen, setCreateOpen] = useState(false);
+  const [saveListOpen, setSaveListOpen] = useState(false);
+  const [activeListId, setActiveListId] = useState<string>("all");
+
+  // Sync ?q= and ?new=1 from the topbar / sidebar.
+  useEffect(() => {
+    const q = params.get("q");
+    if (q !== null) setFilters((cur) => ({ ...cur, query: q }));
+    if (params.get("new") === "1") {
+      setCreateOpen(true);
+      router.replace("/leads");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  const allRows = useMemo(() => buildLeadRows(snapshot), [snapshot]);
+
+  const effectiveFilters: LeadFilters = useMemo(() => {
+    if (activeListId === "all") return filters;
+    if (activeListId === "new") return { ...filters, statuses: ["new"] };
+    if (activeListId === "qualified") return { ...filters, statuses: ["qualified"] };
+    if (activeListId === "needs_followup") {
+      return { ...filters, statuses: ["contacted", "replied"] };
+    }
+    if (activeListId === "suppressed") return { ...filters, is_suppressed: true };
+    const list = snapshot.lists.find((l) => l.id === activeListId);
+    if (list) return { ...list.filters_json, query: filters.query };
+    return filters;
+  }, [activeListId, filters, snapshot.lists]);
+
+  const filteredRows = useMemo(
+    () => sortRows(applyFilters(allRows, effectiveFilters), sortKey),
+    [allRows, effectiveFilters, sortKey],
+  );
+
+  const isEmpty = allRows.length === 0;
+  const filteredEmpty = !isEmpty && filteredRows.length === 0;
+  const hasSaveable =
+    activeListId === "all" &&
+    Object.values(filters).some((v) => {
+      if (v == null) return false;
+      if (typeof v === "string") return v.trim().length > 0 && v !== filters.query;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    }) &&
+    // The free-text query stays per-session, so it doesn't make a filter
+    // "saveable" on its own.
+    Object.entries(filters).some(([k, v]) => k !== "query" && v != null);
+
+  const select = (id: string, checked: boolean) =>
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
+  const selectedRows = filteredRows.filter((r) => selected.has(r.lead.id));
+
+  const onBulkStatus = (s: LeadStatus) => {
+    selectedRows.forEach((r) => setLeadStatus(r.lead.id, s));
+    toast.push({ tone: "success", title: `Marked ${selected.size} as ${s.replaceAll("_", " ")}.` });
+  };
+  const onBulkSuppress = () => {
+    selectedRows.forEach((r) => suppressLead(r.lead.id, "Bulk action from inbox"));
+    toast.push({
+      tone: "info",
+      title: `Suppressed ${selected.size} lead${selected.size === 1 ? "" : "s"}.`,
+      description: "They won't be exported for outreach.",
+    });
+    setSelected(new Set());
+  };
+  const onBulkDelete = () => {
+    if (!window.confirm(`Delete ${selected.size} lead${selected.size === 1 ? "" : "s"}?`)) return;
+    selectedRows.forEach((r) => deleteLead(r.lead.id));
+    setSelected(new Set());
+    toast.push({ tone: "info", title: "Leads deleted." });
+  };
+  const onBulkExport = () => {
+    if (!selectedRows.length) return;
+    downloadCsv(selectedRows);
+    toast.push({
+      tone: "success",
+      title: "Export started",
+      description: "Suppressed leads were excluded for safety.",
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <PageHeader
+        title="Lead Inbox"
+        description="Your single place to triage, score, and follow up. Import a messy list or paste rows from a sheet — Perchlead will clean them."
+        actions={
+          <>
+            <Button
+              variant="bordered"
+              radius="lg"
+              className="border-soft bg-white text-sm"
+              startContent={<FilterIcon className="h-4 w-4" />}
+              onPress={() => setShowFilters((v) => !v)}
+            >
+              {showFilters ? "Hide filters" : "Filters"}
+            </Button>
+            <Button
+              as={Link}
+              href="/imports"
+              variant="bordered"
+              radius="lg"
+              startContent={<Upload className="h-4 w-4" />}
+              className="border-soft bg-white text-sm"
+            >
+              Import
+            </Button>
+            <Button
+              radius="lg"
+              color="primary"
+              startContent={<Plus className="h-4 w-4" />}
+              onPress={() => setCreateOpen(true)}
+            >
+              Add lead
+            </Button>
+          </>
+        }
+      />
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        <div className="flex-1 space-y-3">
+          <div className="flex flex-col gap-3 rounded-2xl border border-soft surface-panel p-2 shadow-soft sm:flex-row sm:items-center sm:gap-2">
+            <Input
+              aria-label="Search this view"
+              radius="lg"
+              variant="bordered"
+              startContent={<Search className="h-4 w-4 text-ink-400" />}
+              placeholder="Search this view…"
+              value={filters.query ?? ""}
+              onValueChange={(v) => setFilters((f) => ({ ...f, query: v }))}
+              classNames={{
+                inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+                input: "text-sm",
+              }}
+              className="flex-1"
+            />
+            <Tabs
+              aria-label="Saved views"
+              size="sm"
+              radius="full"
+              variant="solid"
+              selectedKey={activeListId}
+              onSelectionChange={(k) => setActiveListId(String(k))}
+              classNames={{
+                tabList: "bg-ink-100/70 p-1",
+                tab: "text-xs font-medium px-3",
+                cursor: "shadow-soft",
+              }}
+            >
+              <Tab key="all" title="All" />
+              <Tab key="new" title="New" />
+              <Tab key="qualified" title="Qualified" />
+              <Tab key="needs_followup" title="Follow up" />
+              <Tab key="suppressed" title="Suppressed" />
+              {snapshot.lists.map((l) => (
+                <Tab key={l.id} title={l.name} />
+              ))}
+            </Tabs>
+            <div className="flex items-center gap-1.5">
+              <span className="hidden text-[11px] text-ink-500 sm:inline">Sort</span>
+              <Tabs
+                aria-label="Sort by"
+                size="sm"
+                radius="full"
+                variant="light"
+                selectedKey={sortKey}
+                onSelectionChange={(k) => setSortKey(k as SortKey)}
+                classNames={{
+                  tabList: "p-0 gap-0",
+                  tab: "text-xs px-2",
+                  cursor: "bg-ink-100",
+                }}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <Tab key={o.key} title={o.label} />
+                ))}
+              </Tabs>
+            </div>
+            {hasSaveable && (
+              <Button
+                size="sm"
+                variant="flat"
+                radius="full"
+                className="bg-primary-50 text-xs text-primary-700"
+                startContent={<BookmarkPlus className="h-3.5 w-3.5" />}
+                onPress={() => setSaveListOpen(true)}
+              >
+                Save as list
+              </Button>
+            )}
+            {filteredRows.length > 0 && (
+              <Button
+                size="sm"
+                variant="light"
+                radius="full"
+                className="text-xs"
+                startContent={<Download className="h-3.5 w-3.5" />}
+                onPress={() => {
+                  downloadCsv(filteredRows);
+                  toast.push({
+                    tone: "success",
+                    title: "Export started",
+                    description: "Suppressed leads were excluded.",
+                  });
+                }}
+              >
+                Export view
+              </Button>
+            )}
+          </div>
+
+          {isEmpty && (
+            <EmptyState
+              icon={<Inbox className="h-5 w-5" />}
+              title="Import your first messy lead list"
+              description="Drop a CSV, paste rows from a sheet, or add a single lead by hand. Perchlead will clean, dedupe, and score them automatically."
+              action={
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button as={Link} href="/imports" color="primary" radius="lg" startContent={<Upload className="h-4 w-4" />}>
+                    Import leads
+                  </Button>
+                  <Button
+                    variant="bordered"
+                    radius="lg"
+                    className="border-soft bg-white"
+                    startContent={<Sparkles className="h-4 w-4" />}
+                    onPress={() => setCreateOpen(true)}
+                  >
+                    Add by hand
+                  </Button>
+                </div>
+              }
+            />
+          )}
+
+          {filteredEmpty && (
+            <EmptyState
+              icon={<Search className="h-5 w-5" />}
+              title="No leads match this view"
+              description="Try clearing filters or switching to All."
+              action={
+                <Button
+                  variant="light"
+                  onPress={() => {
+                    setFilters({});
+                    setActiveListId("all");
+                  }}
+                >
+                  Clear filters
+                </Button>
+              }
+            />
+          )}
+
+          {!isEmpty && !filteredEmpty && (
+            <LeadTable
+              rows={filteredRows}
+              selected={selected}
+              onSelect={select}
+              onRowClick={(row) => router.push(`/leads/${row.lead.id}`)}
+            />
+          )}
+        </div>
+
+        {showFilters && (
+          <div className="w-full lg:w-[280px] lg:shrink-0">
+            <LeadFilterBar
+              filters={filters}
+              onChange={setFilters}
+              tags={snapshot.tags}
+              products={snapshot.products}
+              sources={snapshot.sources}
+            />
+          </div>
+        )}
+      </div>
+
+      <BulkActionsBar
+        count={selected.size}
+        onClear={() => setSelected(new Set())}
+        onSetStatus={onBulkStatus}
+        onSuppress={onBulkSuppress}
+        onExport={onBulkExport}
+        onDelete={onBulkDelete}
+      />
+
+      <LeadCreateModal open={createOpen} onOpenChange={setCreateOpen} />
+      <SaveListModal
+        open={saveListOpen}
+        filters={filters}
+        onOpenChange={setSaveListOpen}
+        onSaved={(id) => {
+          setActiveListId(id);
+          toast.push({
+            tone: "success",
+            title: "List saved",
+            description: "Available from the saved view tabs and from /lists.",
+          });
+        }}
+      />
+    </div>
+  );
+}
