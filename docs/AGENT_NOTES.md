@@ -196,3 +196,35 @@ User: "no supabase, we will use vercel and neon, pick. also create a repo named 
 
 ### Build state after pivot
 - typecheck 0 errors, lint clean, `npm run build` 11 routes (no functional change from yesterday's session).
+
+### Going live — what actually happened
+
+**GitHub repo created.** `gh repo create perchlead --public --source=. --push`. Live at https://github.com/syfpsy/perchlead. Initial commit pushed; user is logged in to gh as `syfpsy`. Token scopes: `gist, read:org, repo, workflow`.
+
+**Vercel project linked.** `vercel link --yes --project perchlead`. The CLI created the project in team `seyfis-projects-4185aa88` (display name "nxyz"), auto-connected the GitHub repo (so `git push` triggers prod deploys), and added `.vercel/` to `.gitignore`. Project ID via `.vercel/project.json`.
+
+**First deploy failed.** `vercel deploy --prod --yes` — npm install crashed when @heroui-pro/react's postinstall (`node ./pre/postinstall/index.js`) hit `Access denied: You don't have permission to install HeroUI React Pro. … For CI/CD environments, ensure the HEROUI_AUTH_TOKEN environment variable is set.` Pro stores auth in the OS keyring (Windows Credential Manager on this machine), and Vercel CI doesn't have it. The user's local `npx heroui-pro status` still works and reports 179 days remaining.
+
+**Fix shipped:** removed `@heroui-pro/react` from `package.json` and regenerated the lockfile. Pro is dormant in source (no imports, doesn't compile against our v2 stack anyway), so the removal is purely a deps cleanup. Updated `docs/HEROUI_PRO_SETUP.md` with explicit re-add steps (set `HEROUI_AUTH_TOKEN` on all Vercel envs + complete the v3 stack migration). Updated the project memory note to reflect the new state.
+
+**Second deploy succeeded.** Auto-triggered by `git push`. `vercel inspect --wait`: `● Ready`. Deploy ID `dpl_8ZXmVG5mDoHYuPJ3cUfAPrR6NoEm`.
+
+**Vercel SSO gate disabled.** First HTTP check returned 401 (Vercel's default Standard Protection on team projects). PATCH to `/v9/projects/perchlead?teamId=...` with `{"ssoProtection": null}` made the deployment public. Second HTTP check: HTTP 200 across `/`, `/leads`, `/dashboard`, `/imports`, `/tasks`, `/lists`, `/finder`, `/settings` — and the "Perchlead — Lead memory for indie founders" `<title>` plus the sidebar's "Demo data on" panel render in the SSR HTML.
+
+### Live URLs
+- Production: https://perchlead-seyfis-projects-4185aa88.vercel.app/
+- Git-tracked alias: https://perchlead-git-main-seyfis-projects-4185aa88.vercel.app/
+- GitHub: https://github.com/syfpsy/perchlead
+- Vercel dashboard: https://vercel.com/seyfis-projects-4185aa88/perchlead
+
+### Caveats
+- App runs entirely on the **local mock store** (`localStorage`) in production. Each visitor gets their own seeded workspace. No data persists across browsers/devices. Wiring Neon up flips this without UI changes — see `db/README.md`.
+- No custom domain yet. Add one with `vercel domains add` and configure DNS, then `vercel alias`.
+- Pro registry token is **not** in Vercel env vars (deliberately — see HEROUI_PRO_SETUP.md).
+- SSO protection is **disabled** for this project. If the team's defaults later flip it back on, it'll need to be re-disabled or replaced with a per-deployment bypass.
+
+### Next moves (in priority order)
+1. Stand up a Neon project, apply `db/schema.sql`, set `DATABASE_URL` + `DATABASE_URL_UNPOOLED` in Vercel.
+2. Implement `lib/store/neon-store.ts` with the same surface as `data-store.ts`. Gate by `NEXT_PUBLIC_DATA_MODE`.
+3. Auth.js with email magic-link (Resend) — upserts into `public.users` on first sign-in.
+4. Custom domain.
