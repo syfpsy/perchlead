@@ -1,6 +1,8 @@
 # HeroUI Pro setup
 
-The repo currently builds against the open-source `@heroui/react` v2.x with **Tailwind CSS 3**. The HeroUI Pro package (`@heroui-pro/react@1.0.0-beta.2`) is **installed and authenticated** in this project, but it is **not yet active** — it requires a different runtime stack than v2 and importing it today breaks the build. This doc explains why and lays out the migration.
+The repo currently builds against the open-source `@heroui/react` v2.x with **Tailwind CSS 3**. The HeroUI Pro package (`@heroui-pro/react@1.0.0-beta.2`) is **not in `package.json` today**. It was added once but **removed before the first Vercel deploy** — its postinstall license check requires `HEROUI_AUTH_TOKEN` in CI environments, which we don't ship. The Pro auth on the user's machine still works (`npx heroui-pro status` confirms it), so re-adding is one command + one Vercel env var.
+
+This doc explains why Pro is dormant, how to re-add it when you're ready, and the full v3-stack migration that any meaningful Pro adoption requires.
 
 ## TL;DR
 
@@ -13,7 +15,11 @@ The repo currently builds against the open-source `@heroui/react` v2.x with **Ta
 | Charts | none | `recharts` ≥ 2 |
 | Misc | — | `tailwind-merge` ≥ 3, `tailwind-variants` ≥ 3, `react-aria-components` ≥ 1.17, `@number-flow/react` ≥ 0.5 |
 
-`@heroui-pro/react` is in `package.json` so the dep + auth are tested. Importing it from any source file currently fails the build with `Module not found: 'recharts'` and `'ProgressBar' is not exported from '@heroui/react'` — those exports landed in HeroUI v3.
+When `@heroui-pro/react` was in `package.json`, two things blocked us:
+1. The Pro postinstall script ran `node ./pre/postinstall/index.js` which calls into the OS keyring for the license. On Vercel: `Access denied: You don't have permission to install HeroUI React Pro.`
+2. Even with that fixed, importing from any Pro source file fails the *bundler* with `Module not found: 'recharts'` and `'ProgressBar' is not exported from '@heroui/react'` — those exports landed in HeroUI v3.
+
+So Pro v1 needs both a license env var and the v3 stack. We solved it by deferring both.
 
 ## Why we hit this
 
@@ -23,6 +29,31 @@ I tried to do a small swap (Dashboard stat cards → Pro `KPI`). Two errors surf
 2. **CSS-level skew.** `@heroui-pro/react/css` is pre-built against **Tailwind 4** and uses syntax (`@layer properties { @supports ... }`) that Tailwind 3's PostCSS pipeline cannot parse. Importing it as a side effect fails the build.
 
 The package is real, the auth works, the install is good — Pro v1 just isn't the same generation as the rest of our stack.
+
+## Re-adding Pro to deps (CI license fix)
+
+When you're ready to bring Pro back into `package.json` (whether you migrate to the v3 stack or not), the postinstall license check needs to pass on Vercel:
+
+```bash
+# 1. Locally, copy your Pro auth token. The CLI stores it in the OS keyring;
+#    print it once with:
+npx heroui-pro status   # shows expiry; the token itself is in the keyring
+# If the CLI doesn't expose a "print token" command in your version, run
+# `npx heroui-pro login` again with HEROUI_AUTH_TOKEN_PRINT=1, or grab it
+# from the HeroUI Pro dashboard.
+
+# 2. Set the token on Vercel for all environments:
+vercel env add HEROUI_AUTH_TOKEN production
+vercel env add HEROUI_AUTH_TOKEN preview
+vercel env add HEROUI_AUTH_TOKEN development
+
+# 3. Re-add the package:
+npm i @heroui-pro/react@^1.0.0-beta.2
+
+# 4. Commit, push — Vercel auto-deploy reads HEROUI_AUTH_TOKEN at install.
+```
+
+**Don't** put the token in `.env.example` or commit it. It's a registry/license credential, not application config.
 
 ## Migration plan (when you're ready)
 
