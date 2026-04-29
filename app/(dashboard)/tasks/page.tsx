@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Button, Tab, Tabs } from "@heroui/react";
+import { Button, Tab, Tabs } from "@/lib/heroui-compat";
 import { Calendar, CheckCircle2, Clock3, Trash2 } from "lucide-react";
 import clsx from "clsx";
 

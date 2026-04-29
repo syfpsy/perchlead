@@ -1,95 +1,173 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "@heroui-pro/react/css";
 
-:root {
-  --color-bg-app: 247 248 250;
-  --color-bg-panel: 255 255 255;
-  --color-border-soft: 230 232 238;
-  --color-border-firm: 215 219 227;
-}
+/* Dark mode via .dark class (for Tailwind dark: utilities) */
+@custom-variant dark (&:is(.dark, .dark *));
 
-.dark {
-  --color-bg-app: 8 10 14;
-  --color-bg-panel: 13 16 22;
-  --color-border-soft: 30 34 44;
-  --color-border-firm: 42 47 60;
-}
-
-html,
-body {
-  height: 100%;
-}
-
-body {
-  font-feature-settings: "cv11", "ss03", "ss01", "ss04", "salt";
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  font-family: var(--font-sans, ui-sans-serif);
-  background: rgb(var(--color-bg-app));
-  color: #0f1218;
-}
-.dark body {
-  color: #f0f2f6;
-}
-
-.surface-app {
-  background: rgb(var(--color-bg-app));
-}
-.surface-panel {
-  background: rgb(var(--color-bg-panel));
-}
-.border-soft {
-  border-color: rgb(var(--color-border-soft));
-}
-.border-firm {
-  border-color: rgb(var(--color-border-firm));
+/* HeroUI Pro theme (user-provided) */
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+  --background: oklch(97.02% 0.0015 155.25);
+  --muted: oklch(55.17% 0.0030 155.25);
+  --scrollbar: oklch(87.10% 0.0015 155.25);
+  --surface-secondary: oklch(95.24% 0.0023 155.25);
+  --surface-tertiary: oklch(93.73% 0.0023 155.25);
+  --default: oklch(94.00% 0.0015 155.25);
+  --accent: oklch(81.93% 0.1197 155.25);
+  --accent-foreground: oklch(15% 0.0239 155.25);
+  --success: oklch(73.29% 0.1940 139.01);
+  --warning: oklch(78.19% 0.1589 60.49);
+  --danger: oklch(65.32% 0.2335 13.90);
+  --field-border: oklch(90.00% 0.0015 155.25);
+  --border: oklch(90.00% 0.0015 155.25);
+  --separator: oklch(92.00% 0.0015 155.25);
+  --radius: 0.25rem;
+  --field-radius: 0.25rem;
+  --overlay-shadow: 0 1px 4px 0 rgba(0,0,0,0.04), 0 -2px 6px 0 rgba(0,0,0,0.02), 0 6px 14px 0 rgba(0,0,0,0.05);
+  --field-shadow: 0 4px 8px 0 rgba(0,0,0,0.06), 0 2px 4px 0 rgba(0,0,0,0.08), 0 0 1px 0 rgba(0,0,0,0.08);
+  --font-sans: var(--font-instrument-sans);
+  --cursor-interactive: pointer;
+  --skeleton-animation: pulse;
 }
 
-.scrollbar-thin {
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(12.00% 0.0015 155.25);
+  --muted: oklch(70.50% 0.0030 155.25);
+  --scrollbar: oklch(70.50% 0.0015 155.25);
+  --surface: oklch(21.03% 0.0030 155.25);
+  --surface-secondary: oklch(25.70% 0.0023 155.25);
+  --surface-secondary-foreground: oklch(25.70% 0.0000 155.25);
+  --surface-tertiary: oklch(27.21% 0.0023 155.25);
+  --surface-tertiary-foreground: oklch(27.21% 0.0000 155.25);
+  --overlay: oklch(21.03% 0.0030 155.25);
+  --default: oklch(27.40% 0.0015 155.25);
+  --accent: oklch(81.93% 0.1197 155.25);
+  --accent-foreground: oklch(15% 0.0239 155.25);
+  --success: oklch(73.29% 0.1940 139.01);
+  --warning: oklch(78.19% 0.1589 60.49);
+  --danger: oklch(65.32% 0.2335 13.90);
+  --field-background: oklch(21.03% 0.0030 155.25);
+  --field-placeholder: oklch(70.50% 0.0000 155.25);
+  --field-border: oklch(28.00% 0.0015 155.25);
+  --segment: oklch(39.64% 0.0015 155.25);
+  --border: oklch(28.00% 0.0015 155.25);
+  --separator: oklch(25.00% 0.0015 155.25);
+  --overlay-shadow: 0 0 1px 0 rgba(255,255,255,0.15) inset;
+}
+
+/* Custom design tokens */
+@theme {
+  --font-sans: var(--font-instrument-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Ink palette — used for text and subtle surfaces */
+  --color-ink-50: #f7f8fa;
+  --color-ink-100: #eef0f4;
+  --color-ink-200: #dde1e8;
+  --color-ink-300: #bcc2cf;
+  --color-ink-400: #8b94a7;
+  --color-ink-500: #5e6779;
+  --color-ink-600: #434b5d;
+  --color-ink-700: #2f3543;
+  --color-ink-800: #1d212c;
+  --color-ink-900: #0f1218;
+  --color-ink-950: #080a0e;
+
+  /* Primary palette — kept for backwards compatibility */
+  --color-primary-50: #eef4ff;
+  --color-primary-100: #dde9ff;
+  --color-primary-200: #b9d0ff;
+  --color-primary-300: #8aafff;
+  --color-primary-400: #5d8aff;
+  --color-primary-500: #3a6bff;
+  --color-primary-600: #2752ec;
+  --color-primary-700: #1f40c2;
+  --color-primary-800: #1c3697;
+  --color-primary-900: #1a2f7a;
+
+  /* Shadows */
+  --shadow-soft: 0 1px 2px rgba(15,18,24,0.04), 0 1px 1px rgba(15,18,24,0.03);
+  --shadow-card: 0 1px 0 rgba(15,18,24,0.04), 0 4px 16px -8px rgba(15,18,24,0.08);
+  --shadow-pop: 0 8px 28px -10px rgba(15,18,24,0.18);
+
+  /* Letter spacing */
+  --tracking-tightish: -0.012em;
+}
+
+/* Semantic surface utilities */
+@utility surface-app {
+  background: var(--background);
+}
+@utility surface-panel {
+  background: var(--surface-secondary, var(--background));
+}
+@utility border-soft {
+  border-color: var(--separator);
+}
+@utility border-firm {
+  border-color: var(--border);
+}
+
+/* bg-panel alias (used in many components) */
+@utility bg-panel {
+  background: var(--surface-secondary, var(--background));
+}
+
+/* Scrollbar */
+@utility scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: rgb(var(--color-border-firm)) transparent;
+  scrollbar-color: var(--border) transparent;
 }
-.scrollbar-thin::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+.scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgb(var(--color-border-firm));
+  background-color: var(--border);
   border-radius: 4px;
 }
-.scrollbar-thin::-webkit-scrollbar-track {
-  background-color: transparent;
-}
+.scrollbar-thin::-webkit-scrollbar-track { background-color: transparent; }
 
+/* Hairline rows */
 .hairline-row + .hairline-row {
-  border-top: 1px solid rgb(var(--color-border-soft));
+  border-top: 1px solid var(--separator);
 }
 
+/* Skeleton shimmer */
 @keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
 }
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgb(var(--color-border-soft)) 0%,
-    rgb(var(--color-bg-panel)) 50%,
-    rgb(var(--color-border-soft)) 100%
-  );
+  background: linear-gradient(90deg,
+    var(--border) 0%,
+    var(--surface-secondary, var(--background)) 50%,
+    var(--border) 100%);
   background-size: 200px 100%;
   animation: shimmer 1.6s linear infinite;
 }
 
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in {
-    animation: none;
-  }
-  .skeleton {
-    animation: none;
-  }
+  .animate-fade-in { animation: none; }
+  .skeleton { animation: none; }
+}
+
+/* Fade-in animation */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.18s ease-out;
+}
+
+html, body { height: 100%; }
+body {
+  font-feature-settings: "cv11", "ss03", "ss01", "ss04", "salt";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: var(--background);
 }

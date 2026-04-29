@@ -12,7 +12,7 @@ import {
   Tab,
   Tabs,
   Textarea,
-} from "@heroui/react";
+} from "@/lib/heroui-compat";
 import { Copy, Database, FileText, Pencil, Plus, RefreshCw, ShieldOff, Tags as TagsIcon, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";

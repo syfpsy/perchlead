@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@/lib/heroui-compat";
 import { AlertTriangle } from "lucide-react";
 
 /**

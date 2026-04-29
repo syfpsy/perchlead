@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, Select, SelectItem, Switch } from "@heroui/react";
+import { Button, Select, SelectItem, Switch } from "@/lib/heroui-compat";
 import { CheckCircle2, ChevronLeft, ChevronRight, Sparkles, Upload } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";
@@ -271,7 +271,7 @@ export default function ImportsPage() {
               label="Consent / legal basis"
               selectedKeys={[consent]}
               onSelectionChange={(keys) => {
-                const k = Array.from(keys)[0] as ConsentBasis | undefined;
+                const k = Array.from(keys as Iterable<React.Key>)[0] as ConsentBasis | undefined;
                 if (k) setConsent(k);
               }}
               size="sm"

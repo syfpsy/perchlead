@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    optimizePackageImports: ["@heroui/react", "lucide-react"],
+    optimizePackageImports: ["@heroui/react", "@heroui-pro/react", "lucide-react"],
   },
 };
 

@@ -34,7 +34,7 @@ export function Topbar() {
   }, [router]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-soft bg-white/80 px-4 backdrop-blur dark:bg-ink-950/90 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-soft bg-panel/80 px-4 backdrop-blur md:px-6">
       <form
         role="search"
         className="flex-1 max-w-xl"
@@ -45,45 +45,39 @@ export function Topbar() {
           router.push(q ? `/leads?q=${encodeURIComponent(q)}` : "/leads");
         }}
       >
-        <Input
-          id="global-search"
-          name="q"
-          aria-label="Search leads"
-          placeholder="Search leads, companies, tags…"
-          startContent={<Search className="h-4 w-4 text-ink-400" />}
-          endContent={
-            <span className="hidden items-center gap-1 text-[10px] text-ink-400 sm:flex">
-              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">⌘K</kbd>
-            </span>
-          }
-          radius="lg"
-          variant="bordered"
-          classNames={{
-            inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm dark:bg-ink-900",
-            input: "text-sm",
-          }}
-        />
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 h-4 w-4 text-ink-400" aria-hidden="true" />
+          <Input
+            id="global-search"
+            name="q"
+            aria-label="Search leads"
+            placeholder="Search leads, companies, tags…"
+            variant="secondary"
+            className="w-full pl-9 pr-16 text-sm"
+          />
+          <kbd className="absolute right-3 hidden rounded border border-firm bg-panel px-1 py-0.5 text-[10px] text-ink-400 sm:inline-block">
+            Cmd+K
+          </kbd>
+        </div>
       </form>
       <div className="flex items-center gap-2">
         <Button
-          as={Link}
-          href="/imports"
-          variant="bordered"
-          radius="lg"
-          startContent={<Upload className="h-4 w-4" />}
-          className="hidden border-soft bg-white text-sm text-ink-700 dark:bg-ink-900 sm:inline-flex"
+          variant="outline"
+          className="hidden text-sm sm:inline-flex"
         >
-          Import
+          <Link href="/imports" className="inline-flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Import
+          </Link>
         </Button>
         <Button
-          as={Link}
-          href="/leads?new=1"
-          color="primary"
-          radius="lg"
-          startContent={<Plus className="h-4 w-4" />}
+          variant="primary"
           className="text-sm font-medium"
         >
-          Add lead
+          <Link href="/leads?new=1" className="inline-flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add lead
+          </Link>
         </Button>
       </div>
     </header>

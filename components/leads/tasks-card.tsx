@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Input } from "@heroui/react";
+import { Button, Input } from "@/lib/heroui-compat";
 import { Calendar, Check, Clock3, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";

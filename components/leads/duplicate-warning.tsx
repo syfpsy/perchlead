@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button } from "@/lib/heroui-compat";
 import { Copy, GitMerge } from "lucide-react";
 import Link from "next/link";
 import type { DuplicateCandidate } from "@/lib/services/dedupe-service";

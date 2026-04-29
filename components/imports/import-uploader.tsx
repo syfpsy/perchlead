@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button } from "@/lib/heroui-compat";
 import { Sparkles, UploadCloud } from "lucide-react";
 import { useRef, useState } from "react";
 import clsx from "clsx";

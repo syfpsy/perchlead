@@ -11,7 +11,7 @@ import {
   Select,
   SelectItem,
   Textarea,
-} from "@heroui/react";
+} from "@/lib/heroui-compat";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo } from "react";
@@ -307,7 +307,7 @@ export function LeadCreateModal({
                   variant="bordered"
                   selectedKeys={field.value ? [field.value] : []}
                   onSelectionChange={(keys) => {
-                    const k = Array.from(keys)[0];
+                    const k = Array.from(keys as Iterable<React.Key>)[0];
                     field.onChange(k as LeadDraftInput["consent_basis"]);
                   }}
                   classNames={{

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, Input } from "@heroui/react";
+import { Button, Input } from "@/lib/heroui-compat";
 import { Layers3, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";

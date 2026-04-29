@@ -3,7 +3,7 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { Clock, ShieldOff } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import type { LeadRow } from "@/types";
 import { statusLabel } from "@/components/ui/status-chip";
 import { Avatar } from "@/components/ui/avatar";

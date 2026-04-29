@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Chip } from "@heroui/react";
+import { Button, Chip } from "@/lib/heroui-compat";
 import { Filter, X } from "lucide-react";
 import clsx from "clsx";
 import type { LeadFilters, LeadStatus, Product, Source, Tag } from "@/types";

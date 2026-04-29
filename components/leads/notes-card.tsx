@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Textarea } from "@heroui/react";
+import { Button, Textarea } from "@/lib/heroui-compat";
 import { useState } from "react";
 import { LeadCard } from "./profile-cards";
 

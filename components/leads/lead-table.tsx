@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import clsx from "clsx";
-import { Tooltip } from "@heroui/react";
+import { Tooltip } from "@/lib/heroui-compat";
 import { ArrowUpRight, Clock, ShieldOff, Star, Tag as TagIcon } from "lucide-react";
 import type { LeadRow } from "@/types";
 import { Avatar } from "@/components/ui/avatar";
