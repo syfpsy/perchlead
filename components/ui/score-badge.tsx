@@ -53,7 +53,7 @@ export function ScoreBadge({
       placement="top"
       content={
         <div className="max-w-xs space-y-1.5 p-1 text-xs">
-          <p className="font-medium text-foreground">Score breakdown</p>
+          <p className="font-medium text-ink-800">Score breakdown</p>
           <ul className="space-y-1">
             {reason.reasons.map((r, idx) => (
               <li key={idx} className="flex items-center justify-between gap-3">

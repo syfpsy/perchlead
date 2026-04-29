@@ -24,14 +24,15 @@ export function EmptyState({
       {/* Subtle accent line instead of a rounded icon box */}
       <div className="h-px w-12 rounded-full bg-primary-200" />
       <div className="space-y-2">
+        {/* Icon before title so screen readers encounter it in document order */}
+        {icon && (
+          <p className="mt-1 text-ink-400" aria-hidden="true">{icon}</p>
+        )}
         <h2 className="font-display text-lg font-normal tracking-tight text-ink-800">
           {title}
         </h2>
         {description && (
           <p className="text-sm leading-relaxed text-ink-500">{description}</p>
-        )}
-        {icon && (
-          <p className="mt-1 text-ink-400">{icon}</p>
         )}
       </div>
       {action}

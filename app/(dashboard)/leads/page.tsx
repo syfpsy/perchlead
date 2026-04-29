@@ -48,6 +48,7 @@ import { BulkActionsBar } from "@/components/leads/bulk-actions";
 import { LeadCreateModal } from "@/components/leads/lead-create-modal";
 import { SaveListModal } from "@/components/leads/save-list-modal";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { findStale } from "@/lib/services/staleness-service";
 import { writeInboxCursor } from "@/lib/store/inbox-cursor";
 import type { LeadFilters, LeadStatus } from "@/types";
@@ -79,6 +80,7 @@ function LeadsPageInner() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [saveListOpen, setSaveListOpen] = useState(false);
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
   const [activeListId, setActiveListId] = useState<string>("all");
   const [density, setDensity] = useState<Density>("comfortable");
   const [viewMode, setViewMode] = useState<"table" | "board">("table");
@@ -190,10 +192,7 @@ function LeadsPageInner() {
     setSelected(new Set());
   };
   const onBulkDelete = () => {
-    if (!window.confirm(`Delete ${selected.size} lead${selected.size === 1 ? "" : "s"}?`)) return;
-    selectedRows.forEach((r) => deleteLead(r.lead.id));
-    setSelected(new Set());
-    toast.push({ tone: "info", title: "Leads deleted." });
+    setConfirmBulkDeleteOpen(true);
   };
   const onBulkExport = () => {
     if (!selectedRows.length) return;
@@ -505,6 +504,20 @@ function LeadsPageInner() {
       />
 
       <LeadCreateModal open={createOpen} onOpenChange={setCreateOpen} />
+      <ConfirmDialog
+        open={confirmBulkDeleteOpen}
+        title={`Delete ${selected.size} lead${selected.size === 1 ? "" : "s"}?`}
+        description="This cannot be undone. All interactions and tasks for these leads will be removed."
+        confirmLabel={`Delete ${selected.size === 1 ? "lead" : "leads"}`}
+        isDangerous
+        onConfirm={() => {
+          selectedRows.forEach((r) => deleteLead(r.lead.id));
+          setSelected(new Set());
+          toast.push({ tone: "info", title: "Leads deleted." });
+          setConfirmBulkDeleteOpen(false);
+        }}
+        onCancel={() => setConfirmBulkDeleteOpen(false)}
+      />
       <SaveListModal
         open={saveListOpen}
         filters={filters}

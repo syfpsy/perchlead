@@ -19,16 +19,15 @@ const NAV: Array<{
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  tagline: string;
 }> = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard, tagline: "Today at a glance" },
-  { href: "/leads", label: "Leads", icon: Inbox, tagline: "Your inbox of leads" },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare, tagline: "Open follow-ups across leads" },
-  { href: "/imports", label: "Import", icon: Upload, tagline: "Bring messy lists in" },
-  { href: "/lists", label: "Lists", icon: Layers3, tagline: "Saved views & segments" },
-  { href: "/finder", label: "Finder", icon: Compass, tagline: "Discover new leads" },
-  { href: "/activity", label: "Activity", icon: History, tagline: "Audit trail across the workspace" },
-  { href: "/settings", label: "Settings", icon: Settings, tagline: "Products, sources, compliance" },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/leads",     label: "Leads",    icon: Inbox },
+  { href: "/tasks",     label: "Tasks",    icon: CheckSquare },
+  { href: "/imports",   label: "Import",   icon: Upload },
+  { href: "/lists",     label: "Lists",    icon: Layers3 },
+  { href: "/finder",    label: "Finder",   icon: Compass },
+  { href: "/activity",  label: "Activity", icon: History },
+  { href: "/settings",  label: "Settings", icon: Settings },
 ];
 
 export function AppSidebar() {

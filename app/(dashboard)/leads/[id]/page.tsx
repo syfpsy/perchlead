@@ -173,7 +173,7 @@ export default function LeadProfilePage() {
                 size="sm"
                 radius="full"
                 variant="bordered"
-                className="h-7 w-7 min-w-7 border-soft bg-panel"
+                className="h-9 w-9 min-w-9 border-soft bg-panel"
                 isDisabled={!neighbors.prev}
                 onPress={() => neighbors.prev && router.push(`/leads/${neighbors.prev}`)}
                 aria-label="Previous lead"
@@ -192,7 +192,7 @@ export default function LeadProfilePage() {
                 size="sm"
                 radius="full"
                 variant="bordered"
-                className="h-7 w-7 min-w-7 border-soft bg-panel"
+                className="h-9 w-9 min-w-9 border-soft bg-panel"
                 isDisabled={!neighbors.next}
                 onPress={() => neighbors.next && router.push(`/leads/${neighbors.next}`)}
                 aria-label="Next lead"
@@ -467,7 +467,7 @@ function LeadActivityCard({ leadId }: { leadId: string }) {
   return (
     <section className="rounded-2xl border border-soft surface-panel shadow-soft">
       <header className="flex items-center justify-between border-b border-soft px-5 py-3">
-        <h3 className="text-sm font-semibold tracking-tightish text-ink-800">Audit trail</h3>
+        <h2 className="text-sm font-semibold tracking-tightish text-ink-800">Audit trail</h2>
         <Link
           href={`/activity?lead=${leadId}`}
           className="rounded-full px-2 py-0.5 text-[11px] font-medium text-primary-700 hover:bg-primary-50"

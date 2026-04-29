@@ -117,6 +117,10 @@
 
   /* Letter spacing */
   --tracking-tightish: -0.012em;
+
+  /* Display font — token for intentional heading differentiation.
+     Currently same face as body; swap var() to introduce a distinct font. */
+  --font-display: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Semantic surface utilities */
@@ -136,6 +140,11 @@
 /* bg-panel alias (used in many components) */
 @utility bg-panel {
   background: var(--surface-secondary, var(--background));
+}
+
+/* bg-soft — separator-tinted fill, e.g. divider bars */
+@utility bg-soft {
+  background-color: var(--separator);
 }
 
 /* Scrollbar */

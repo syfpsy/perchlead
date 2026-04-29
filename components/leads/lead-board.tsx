@@ -25,14 +25,14 @@ const PIPELINE = [
 
 type PipelineCol = (typeof PIPELINE)[number];
 
-// Visual tone per column header.
+// Visual tone per column header — light and dark variants.
 const COL_TONE: Record<PipelineCol, string> = {
-  new: "border-ink-200 bg-ink-50 text-ink-700",
-  qualified: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  contacted: "border-blue-200 bg-blue-50 text-blue-800",
-  replied: "border-violet-200 bg-violet-50 text-violet-800",
-  converted: "border-green-200 bg-green-50 text-green-800",
-  rejected: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  new:       "border-ink-200 bg-ink-50 text-ink-700 dark:bg-ink-800/50 dark:border-ink-700 dark:text-ink-300",
+  qualified: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-300",
+  contacted: "border-blue-200 bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:border-blue-800/60 dark:text-blue-300",
+  replied:   "border-violet-200 bg-violet-50 text-violet-800 dark:bg-violet-950/40 dark:border-violet-800/60 dark:text-violet-300",
+  converted: "border-green-200 bg-green-50 text-green-800 dark:bg-green-950/40 dark:border-green-800/60 dark:text-green-300",
+  rejected:  "border-zinc-200 bg-zinc-50 text-zinc-700 dark:bg-zinc-900/50 dark:border-zinc-700 dark:text-zinc-400",
 };
 
 /** Map every lead status onto one of the six pipeline columns. */
@@ -67,10 +67,7 @@ export function LeadBoard({ rows }: { rows: LeadRow[] }) {
   }
 
   return (
-    <div
-      className="flex gap-3 overflow-x-auto pb-4 scrollbar-thin"
-      style={{ minHeight: 420 }}
-    >
+    <div className="flex min-h-[420px] gap-3 overflow-x-auto pb-4 scrollbar-thin">
       {PIPELINE.map((status, colIdx) => (
         <BoardColumn
           key={status}
@@ -110,7 +107,7 @@ function BoardColumn({
         <span className="text-[11px] font-semibold uppercase tracking-wider">
           {statusLabel(status)}
         </span>
-        <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums">
+        <span className="rounded-full bg-panel/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums">
           {rows.length}
         </span>
       </div>
@@ -118,7 +115,7 @@ function BoardColumn({
       {/* Cards */}
       <div className="flex flex-col gap-1.5">
         {rows.length === 0 && (
-          <div className="rounded-xl border border-dashed border-firm bg-white/40 px-3 py-5 text-center text-[11px] text-ink-400">
+          <div className="rounded-xl border border-dashed border-firm bg-panel/40 px-3 py-5 text-center text-[11px] text-ink-400">
             Empty
           </div>
         )}
@@ -285,7 +282,7 @@ function QuickMoveMenu({
             onMoveTo(s);
           }}
           className={clsx(
-            "rounded-full border bg-panel px-2 py-0.5 text-[10px] font-medium shadow-pop transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+            "min-h-[32px] rounded-full border bg-panel px-2.5 py-1 text-[10px] font-medium shadow-pop transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
             COL_TONE[s],
           )}
         >

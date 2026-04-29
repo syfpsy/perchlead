@@ -16,6 +16,13 @@ import { StatusChip } from "@/components/ui/status-chip";
 import { formatRelative } from "@/lib/utils/format";
 import type { LeadStatus } from "@/types";
 
+// Static tone → Tailwind class lookup so build-time scanning never misses these strings.
+const PIPELINE_TONE_CLS: Record<string, string> = {
+  primary: "text-primary-700 dark:text-primary-400",
+  emerald: "text-emerald-600 dark:text-emerald-400",
+  amber:   "text-amber-600 dark:text-amber-400",
+};
+
 export default function DashboardPage() {
   const snapshot = useSnapshot();
   const rows = useMemo(() => buildLeadRows(snapshot), [snapshot]);
@@ -30,12 +37,12 @@ export default function DashboardPage() {
 
   // Pipeline funnel counts — ordered to show the journey.
   const FUNNEL_STAGES: Array<{ status: LeadStatus; label: string; color: string; bgBar: string }> = [
-    { status: "new",        label: "New",        color: "text-ink-700",     bgBar: "bg-ink-300"       },
-    { status: "qualified",  label: "Qualified",  color: "text-emerald-700", bgBar: "bg-emerald-400"   },
-    { status: "contacted",  label: "Contacted",  color: "text-blue-700",    bgBar: "bg-blue-400"      },
-    { status: "replied",    label: "Replied",    color: "text-violet-700",  bgBar: "bg-violet-400"    },
-    { status: "converted",  label: "Converted",  color: "text-green-700",   bgBar: "bg-green-500"     },
-    { status: "rejected",   label: "Rejected",   color: "text-zinc-600",    bgBar: "bg-zinc-300"      },
+    { status: "new",        label: "New",        color: "text-ink-700 dark:text-ink-300",           bgBar: "bg-ink-300 dark:bg-ink-500"           },
+    { status: "qualified",  label: "Qualified",  color: "text-emerald-700 dark:text-emerald-400",   bgBar: "bg-emerald-400 dark:bg-emerald-500"   },
+    { status: "contacted",  label: "Contacted",  color: "text-blue-700 dark:text-blue-400",         bgBar: "bg-blue-400 dark:bg-blue-500"         },
+    { status: "replied",    label: "Replied",    color: "text-violet-700 dark:text-violet-400",     bgBar: "bg-violet-400 dark:bg-violet-500"     },
+    { status: "converted",  label: "Converted",  color: "text-green-700 dark:text-green-400",       bgBar: "bg-green-500 dark:bg-green-400"       },
+    { status: "rejected",   label: "Rejected",   color: "text-zinc-600 dark:text-zinc-400",         bgBar: "bg-zinc-300 dark:bg-zinc-500"         },
   ];
   const funnelCounts = FUNNEL_STAGES.map((s) => ({
     ...s,
@@ -109,19 +116,16 @@ export default function DashboardPage() {
       {/* Pipeline overview — compact inline row */}
       <section className="flex flex-wrap gap-x-6 gap-y-2 rounded-2xl border border-soft surface-panel px-5 py-3 shadow-soft">
         {[
-          { label: "Total", value: total },
-          { label: "New", value: newCount, tone: "primary" as const },
-          { label: "Qualified", value: qualified, tone: "emerald" as const },
-          { label: "Follow-up", value: followup, tone: "amber" as const },
+          { label: "Total",      value: total },
+          { label: "New",        value: newCount,  tone: "primary" as const },
+          { label: "Qualified",  value: qualified, tone: "emerald" as const },
+          { label: "Follow-up",  value: followup,  tone: "amber" as const },
         ].map(({ label, value, tone }) => (
           <div key={label} className="flex items-center gap-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-ink-500">{label}</span>
-            <span className={`font-display text-xl font-normal tabular-nums tracking-tight ${
-              tone === "primary" ? "text-primary-700" :
-              tone === "emerald" ? "text-emerald-600" :
-              tone === "amber" ? "text-amber-600" :
-              "text-ink-800"
-            }`}>{value}</span>
+            <span className={clsx("font-display text-xl font-normal tabular-nums tracking-tight", PIPELINE_TONE_CLS[tone ?? ""] ?? "text-ink-800")}>
+              {value}
+            </span>
           </div>
         ))}
       </section>
@@ -131,7 +135,7 @@ export default function DashboardPage() {
         <section className="rounded-2xl border border-soft surface-panel p-5 shadow-soft">
           <header className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-ink-900">Pipeline</h3>
+              <h2 className="text-sm font-semibold text-ink-900">Pipeline</h2>
               <p className="text-xs text-ink-500">
                 Conversion through each stage. Tap a row to filter the inbox.
               </p>
@@ -206,7 +210,7 @@ export default function DashboardPage() {
         <section className="space-y-3 rounded-2xl border border-soft surface-panel p-5 shadow-soft lg:col-span-2">
           <header className="flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-semibold text-ink-900">Best leads this week</h3>
+              <h2 className="text-sm font-semibold text-ink-900">Best leads this week</h2>
               <p className="text-xs text-ink-500">Imported in the last 7 days, sorted by score.</p>
             </div>
             <Button
@@ -221,7 +225,7 @@ export default function DashboardPage() {
             </Button>
           </header>
           {bestThisWeek.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-firm bg-white/50 px-3 py-6 text-center text-xs text-ink-500">
+            <p className="rounded-xl border border-dashed border-firm bg-panel/50 px-3 py-6 text-center text-xs text-ink-500">
               No new leads this week. Try the Lead Finder or import a list.
             </p>
           ) : (
@@ -251,7 +255,7 @@ export default function DashboardPage() {
         </section>
 
         <aside className="space-y-3 rounded-2xl border border-soft surface-panel p-5 shadow-soft">
-          <h3 className="text-sm font-semibold text-ink-900">Top sources</h3>
+          <h2 className="text-sm font-semibold text-ink-900">Top sources</h2>
           {topSources.length === 0 ? (
             <p className="text-xs text-ink-500">No sources yet.</p>
           ) : (
@@ -269,7 +273,7 @@ export default function DashboardPage() {
           )}
 
           <div className="mt-4 border-t border-soft pt-4">
-            <h3 className="text-sm font-semibold text-ink-900">Recent imports</h3>
+            <h2 className="text-sm font-semibold text-ink-900">Recent imports</h2>
             {recentImports.length === 0 ? (
               <p className="mt-1 text-xs text-ink-500">No imports yet.</p>
             ) : (
@@ -309,10 +313,10 @@ function Stat({
 }) {
   const palette = {
     default: "text-ink-900",
-    primary: "text-primary-700",
-    emerald: "text-emerald-600",
-    amber: "text-amber-600",
-    red: "text-red-600",
+    primary: "text-primary-700 dark:text-primary-400",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    amber:   "text-amber-600 dark:text-amber-400",
+    red:     "text-red-600 dark:text-red-400",
   } as const;
   const inner = (
     <>

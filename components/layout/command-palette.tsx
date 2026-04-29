@@ -24,6 +24,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { store } from "@/lib/store/data-store";
 import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { ScoreResult } from "@/types";
 
 type CommandKind = "command" | "lead" | "list";
@@ -43,12 +44,15 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
+  const [pendingConfirm, setPendingConfirm] = useState<"restore" | "clear" | null>(null);
   const router = useRouter();
   const snapshot = useSnapshot();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastFocusRef = useRef<Element | null>(null);
 
-  // Cmd/Ctrl + K opens; Esc closes; / + Cmd reopens.
+  // Cmd/Ctrl + K toggles; Esc closes; ? opens (when no input is focused).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
@@ -62,7 +66,6 @@ export function CommandPalette() {
         setOpen(false);
         return;
       }
-      // ? opens the palette unless an input is focused.
       if (e.key === "?" && !target?.matches("input, textarea, [contenteditable]")) {
         e.preventDefault();
         setOpen(true);
@@ -72,14 +75,40 @@ export function CommandPalette() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Save focus before opening; restore it on close.
   useEffect(() => {
     if (open) {
+      lastFocusRef.current = document.activeElement;
       setQuery("");
       setActive(0);
-      // Defer focus until after the modal animates in.
       setTimeout(() => inputRef.current?.focus(), 30);
+    } else {
+      if (lastFocusRef.current instanceof HTMLElement) {
+        lastFocusRef.current.focus();
+      }
     }
   }, [open]);
+
+  // Focus trap: cycle Tab/Shift+Tab within the palette panel.
+  function handleContainerKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Tab" || !containerRef.current) return;
+    const focusable = containerRef.current.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    }
+  }
 
   const items: PaletteItem[] = useMemo(() => {
     const commands: PaletteItem[] = [
@@ -165,9 +194,8 @@ export function CommandPalette() {
         icon: <Sparkles className="h-4 w-4" />,
         keywords: "demo reset seed sample",
         action: () => {
-          if (!window.confirm("Replace your local data with a fresh demo set?")) return;
-          store.reset(true);
-          toast.push({ tone: "info", title: "Demo data restored" });
+          setOpen(false);
+          setPendingConfirm("restore");
         },
       },
       {
@@ -178,9 +206,8 @@ export function CommandPalette() {
         icon: <Database className="h-4 w-4" />,
         keywords: "clear empty wipe reset",
         action: () => {
-          if (!window.confirm("Clear all local data? This cannot be undone.")) return;
-          store.reset(false);
-          toast.push({ tone: "info", title: "Workspace cleared" });
+          setOpen(false);
+          setPendingConfirm("clear");
         },
       },
     ];
@@ -192,7 +219,7 @@ export function CommandPalette() {
       hint: "Saved list",
       icon: <Layers3 className="h-4 w-4 text-ink-400" />,
       keywords: `list view ${list.name}`,
-      action: () => router.push(`/leads`), // The inbox listens to its own state; jump there.
+      action: () => router.push(`/leads`),
     }));
 
     const leads: PaletteItem[] = snapshot.leads.slice(0, 200).map((lead) => ({
@@ -216,7 +243,7 @@ export function CommandPalette() {
     }));
 
     return [...commands, ...lists, ...leads];
-  }, [router, snapshot.lists, snapshot.leads, snapshot.companies, toast]);
+  }, [router, snapshot.lists, snapshot.leads, snapshot.companies]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -242,129 +269,160 @@ export function CommandPalette() {
     setOpen(false);
   }
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open command palette"
-        className="sr-only"
-      />
-    );
-  }
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Command palette"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-ink-900/50 px-4 pt-24 animate-fade-in supports-[backdrop-filter]:bg-ink-900/40 supports-[backdrop-filter]:backdrop-blur-sm"
-      onClick={() => setOpen(false)}
-    >
-      <div
-        className="w-full max-w-xl overflow-hidden rounded-3xl border border-soft surface-panel shadow-pop"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-2 border-b border-soft px-4">
-          <Search className="h-4 w-4 text-ink-400" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setActive((a) => Math.min(filtered.length - 1, a + 1));
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setActive((a) => Math.max(0, a - 1));
-              } else if (e.key === "Enter") {
-                e.preventDefault();
-                runItem();
-              }
-            }}
-            placeholder="Search commands, leads, lists…"
-            className="flex-1 bg-transparent py-3 text-sm text-ink-900 outline-none placeholder:text-ink-400"
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1.5 py-0.5 text-[10px] text-ink-500">
-            Esc
-          </kbd>
-        </div>
+    <>
+      {!open && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Open command palette"
+          className="sr-only"
+        />
+      )}
 
-        <div className="max-h-[60vh] overflow-y-auto scrollbar-thin py-1">
-          {filtered.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-ink-500">
-              No matches. Try “add lead”, “import”, a lead name, or a list.
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command palette"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-ink-900/50 px-4 pt-24 animate-fade-in supports-[backdrop-filter]:bg-ink-900/40 supports-[backdrop-filter]:backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+          onKeyDown={handleContainerKeyDown}
+        >
+          <div
+            ref={containerRef}
+            className="w-full max-w-xl overflow-hidden rounded-3xl border border-soft surface-panel shadow-pop"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 border-b border-soft px-4">
+              <Search className="h-4 w-4 text-ink-400" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setActive((a) => Math.min(filtered.length - 1, a + 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setActive((a) => Math.max(0, a - 1));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    runItem();
+                  }
+                }}
+                placeholder="Search commands, leads, lists…"
+                className="flex-1 bg-transparent py-3 text-sm text-ink-900 outline-none placeholder:text-ink-400"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <kbd className="rounded border border-firm bg-panel px-1.5 py-0.5 text-[10px] text-ink-500">
+                Esc
+              </kbd>
             </div>
-          ) : (
-            <ul>
-              {filtered.map((item, idx) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setActive(idx)}
-                    onClick={() => runItem(item)}
-                    className={clsx(
-                      "flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition",
-                      active === idx ? "bg-primary-50" : "hover:bg-ink-50/70",
-                    )}
-                  >
-                    <span
-                      className={clsx(
-                        "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
-                        active === idx
-                          ? "bg-primary-100 text-primary-700"
-                          : "bg-ink-100 text-ink-600",
-                      )}
-                    >
-                      {item.icon}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium text-ink-900">{item.label}</span>
-                      {item.hint && (
-                        <span className="block truncate text-[11px] text-ink-500">{item.hint}</span>
-                      )}
-                    </span>
-                    {item.kind === "lead" && item.leadData && (
-                      <LeadAffordance
-                        score={item.leadData.score}
-                        scoreReason={item.leadData.score_reason}
-                        isSuppressed={item.leadData.is_suppressed}
-                      />
-                    )}
-                    {item.kind === "command" && active === idx && (
-                      <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1.5 py-0.5 text-[10px] text-ink-500">
-                        ↵
-                      </kbd>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-soft bg-ink-50/40 px-4 py-2 text-[11px] text-ink-500">
-          <span className="inline-flex items-center gap-2">
-            <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">↑</kbd>
-              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">↓</kbd>
-              navigate
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">↵</kbd>
-              run
-            </span>
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">⌘</kbd>
-            <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">K</kbd>
-          </span>
-        </footer>
-      </div>
-    </div>
+            <div className="max-h-[60vh] overflow-y-auto scrollbar-thin py-1">
+              {filtered.length === 0 ? (
+                <div className="px-4 py-6 text-center text-sm text-ink-500">
+                  No matches. Try "add lead", "import", a lead name, or a list.
+                </div>
+              ) : (
+                <ul>
+                  {filtered.map((item, idx) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onMouseEnter={() => setActive(idx)}
+                        onClick={() => runItem(item)}
+                        className={clsx(
+                          "flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition",
+                          active === idx ? "bg-primary-50" : "hover:bg-ink-50/70",
+                        )}
+                      >
+                        <span
+                          className={clsx(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+                            active === idx
+                              ? "bg-primary-100 text-primary-700"
+                              : "bg-ink-100 text-ink-600",
+                          )}
+                        >
+                          {item.icon}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-ink-900">{item.label}</span>
+                          {item.hint && (
+                            <span className="block truncate text-[11px] text-ink-500">{item.hint}</span>
+                          )}
+                        </span>
+                        {item.kind === "lead" && item.leadData && (
+                          <LeadAffordance
+                            score={item.leadData.score}
+                            scoreReason={item.leadData.score_reason}
+                            isSuppressed={item.leadData.is_suppressed}
+                          />
+                        )}
+                        {item.kind === "command" && active === idx && (
+                          <kbd className="rounded border border-firm bg-panel px-1.5 py-0.5 text-[10px] text-ink-500">
+                            ↵
+                          </kbd>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <footer className="flex items-center justify-between gap-3 border-t border-soft bg-ink-50/40 px-4 py-2 text-[11px] text-ink-500">
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="rounded border border-firm bg-panel px-1 py-0.5">↑</kbd>
+                  <kbd className="rounded border border-firm bg-panel px-1 py-0.5">↓</kbd>
+                  navigate
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="rounded border border-firm bg-panel px-1 py-0.5">↵</kbd>
+                  run
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <kbd className="rounded border border-firm bg-panel px-1 py-0.5">⌘</kbd>
+                <kbd className="rounded border border-firm bg-panel px-1 py-0.5">K</kbd>
+              </span>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={pendingConfirm === "restore"}
+        title="Restore demo data?"
+        description="This will replace your local workspace with a fresh demo set. Any changes you've made will be lost."
+        confirmLabel="Restore demo"
+        isDangerous
+        onConfirm={() => {
+          store.reset(true);
+          toast.push({ tone: "info", title: "Demo data restored" });
+          setPendingConfirm(null);
+        }}
+        onCancel={() => setPendingConfirm(null)}
+      />
+      <ConfirmDialog
+        open={pendingConfirm === "clear"}
+        title="Clear all data?"
+        description="This will permanently wipe all leads, tasks, and settings from your local workspace. This cannot be undone."
+        confirmLabel="Clear workspace"
+        isDangerous
+        onConfirm={() => {
+          store.reset(false);
+          toast.push({ tone: "info", title: "Workspace cleared" });
+          setPendingConfirm(null);
+        }}
+        onCancel={() => setPendingConfirm(null)}
+      />
+    </>
   );
 }
 
@@ -384,4 +442,3 @@ function LeadAffordance({ score, scoreReason, isSuppressed }: {
     </span>
   );
 }
-

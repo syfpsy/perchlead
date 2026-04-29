@@ -64,11 +64,19 @@ export function LeadTable({
               return (
                 <tr
                   key={lead.id}
+                  tabIndex={0}
                   className={clsx(
                     "group cursor-pointer border-t border-soft transition",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500",
                     isSelected ? "bg-primary-50/50" : "hover:bg-ink-50/50",
                   )}
                   onClick={() => onRowClick?.(row)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onRowClick?.(row);
+                    }
+                  }}
                 >
                   <Td className="w-9" onClick={(e) => e.stopPropagation()}>
                     <input
@@ -188,7 +196,7 @@ export function LeadTable({
                     <Link
                       href={`/leads/${lead.id}`}
                       aria-label={`Open ${lead.name}`}
-                      className="invisible inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-400 transition group-hover:visible hover:bg-ink-100 hover:text-ink-700"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-400 opacity-0 transition group-hover:opacity-100 focus:opacity-100 hover:bg-ink-100 hover:text-ink-700"
                     >
                       <ArrowUpRight className="h-4 w-4" />
                     </Link>

@@ -116,7 +116,7 @@ function ProductsPanel() {
     >
       <ul className="space-y-2">
         {snapshot.products.map((p) => (
-          <li key={p.id} className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-white px-3 py-2">
+          <li key={p.id} className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-panel px-3 py-2">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-ink-900">{p.name}</p>
               {p.description && <p className="text-xs text-ink-500">{p.description}</p>}
@@ -136,7 +136,7 @@ function ProductsPanel() {
           </li>
         ))}
         {snapshot.products.length === 0 && (
-          <li className="rounded-xl border border-dashed border-firm bg-white/50 px-3 py-3 text-center text-xs text-ink-500">
+          <li className="rounded-xl border border-dashed border-firm bg-panel/50 px-3 py-3 text-center text-xs text-ink-500">
             No products yet.
           </li>
         )}
@@ -222,7 +222,7 @@ function TagsPanel() {
           radius="lg"
           variant="bordered"
           className="w-48"
-          classNames={{ inputWrapper: "border-soft bg-white shadow-none", input: "text-sm" }}
+          classNames={{ inputWrapper: "border-soft bg-panel shadow-none", input: "text-sm" }}
           startContent={<TagsIcon className="h-4 w-4 text-ink-400" />}
         />
         <input
@@ -282,7 +282,7 @@ function SourcesPanel() {
           .slice()
           .sort((a, b) => b.created_at.localeCompare(a.created_at))
           .map((s) => (
-            <li key={s.id} className="flex items-center justify-between rounded-xl border border-soft bg-white px-3 py-2 text-sm">
+            <li key={s.id} className="flex items-center justify-between rounded-xl border border-soft bg-panel px-3 py-2 text-sm">
               <div>
                 <p className="font-medium text-ink-900">{s.name}</p>
                 <p className="text-[11px] text-ink-500 capitalize">
@@ -352,7 +352,7 @@ function CompliancePanel() {
           radius="lg"
           variant="bordered"
           className="w-72"
-          classNames={{ inputWrapper: "border-soft bg-white shadow-none", input: "text-sm" }}
+          classNames={{ inputWrapper: "border-soft bg-panel shadow-none", input: "text-sm" }}
           startContent={<ShieldOff className="h-4 w-4 text-ink-400" />}
         />
         <Input
@@ -362,7 +362,7 @@ function CompliancePanel() {
           radius="lg"
           variant="bordered"
           className="w-72"
-          classNames={{ inputWrapper: "border-soft bg-white shadow-none", input: "text-sm" }}
+          classNames={{ inputWrapper: "border-soft bg-panel shadow-none", input: "text-sm" }}
         />
         <Button color="primary" onPress={add} isDisabled={!emailOrDomain.trim()}>
           Add
@@ -373,7 +373,7 @@ function CompliancePanel() {
         {snapshot.suppressions.map((s) => (
           <li
             key={s.id}
-            className="flex items-center justify-between rounded-xl border border-soft bg-white px-3 py-2 text-sm"
+            className="flex items-center justify-between rounded-xl border border-soft bg-panel px-3 py-2 text-sm"
           >
             <div className="min-w-0">
               <p className="truncate font-medium text-ink-900">{s.email ?? s.domain}</p>
@@ -389,7 +389,7 @@ function CompliancePanel() {
           </li>
         ))}
         {snapshot.suppressions.length === 0 && (
-          <li className="rounded-xl border border-dashed border-firm bg-white/50 px-3 py-3 text-center text-xs text-ink-500">
+          <li className="rounded-xl border border-dashed border-firm bg-panel/50 px-3 py-3 text-center text-xs text-ink-500">
             Nothing on the suppression list yet.
           </li>
         )}
@@ -400,7 +400,7 @@ function CompliancePanel() {
 
 // ── Shared input classNames used in the template form modal ────────────────
 const tmplFieldCn = {
-  inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+  inputWrapper: "border-soft bg-panel shadow-none data-[hover=true]:border-firm",
   input: "text-sm text-ink-900",
 } as const;
 
@@ -474,7 +474,7 @@ function TemplatesPanel() {
           {TEMPLATES.map((t) => (
             <li
               key={t.id}
-              className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-white px-3 py-2.5"
+              className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-panel px-3 py-2.5"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -508,7 +508,7 @@ function TemplatesPanel() {
             {customTemplates.map((t) => (
               <li
                 key={t.id}
-                className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-white px-3 py-2.5"
+                className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-panel px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -665,7 +665,7 @@ function TemplateModal({
             placeholder={`Hi {{first_name}},\n\n…\n\n— {{sender_name}}`}
             classNames={{
               inputWrapper:
-                "border-soft bg-white shadow-none data-[hover=true]:border-firm font-mono",
+                "border-soft bg-panel shadow-none data-[hover=true]:border-firm font-mono",
               input: "text-sm font-mono leading-relaxed",
             }}
           />
@@ -716,7 +716,7 @@ function DataPanel() {
       description="MVP runs on a local mock with localStorage persistence. Swap in Neon Postgres by replacing /lib/store/data-store.ts."
     >
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-soft bg-white p-4">
+        <div className="rounded-2xl border border-soft bg-panel p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-ink-900">
             <Database className="h-4 w-4 text-primary-600" /> Current mode: Local mock
           </div>
@@ -729,19 +729,19 @@ function DataPanel() {
             {snapshot.products.length} products · {snapshot.suppressions.length} suppressions.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button radius="lg" variant="bordered" className="border-soft bg-white" onPress={exportSnapshot}>
+            <Button radius="lg" variant="bordered" className="border-soft bg-panel" onPress={exportSnapshot}>
               Download snapshot
             </Button>
             <Button radius="lg" color="primary" variant="flat" onPress={() => setConfirmReset('seed')} startContent={<RefreshCw className="h-4 w-4" />}>
               Restore demo
             </Button>
-            <Button radius="lg" variant="bordered" className="border-soft bg-white text-red-700" onPress={() => setConfirmReset('clear')}>
+            <Button radius="lg" variant="bordered" className="border-soft bg-panel text-red-700" onPress={() => setConfirmReset('clear')}>
               Clear all
             </Button>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-soft bg-white p-4">
+        <div className="rounded-2xl border border-soft bg-panel p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-ink-900">
             <Database className="h-4 w-4 text-primary-600" /> Neon setup
           </div>
@@ -770,7 +770,7 @@ function DataPanel() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-dashed border-firm bg-white/50 p-4 text-xs text-ink-600">
+      <div className="mt-4 rounded-2xl border border-dashed border-firm bg-panel/50 p-4 text-xs text-ink-600">
         <p className="font-semibold text-ink-800">HeroUI Pro</p>
         <p className="mt-1">
           The app ships with the open-source HeroUI components. To use HeroUI Pro components, follow{" "}
@@ -820,7 +820,7 @@ function Section({
     <section className="space-y-3 rounded-2xl border border-soft surface-panel p-5 shadow-soft">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
+          <h2 className="text-sm font-semibold text-ink-900">{title}</h2>
           {description && <p className="text-xs text-ink-500">{description}</p>}
         </div>
         {action}

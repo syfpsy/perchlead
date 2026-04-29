@@ -370,7 +370,7 @@ export function TimelineCard({
         <span className="absolute left-1.5 top-1 bottom-1 w-px bg-soft" aria-hidden />
         {sorted.map((i) => (
           <li key={i.id} className="relative">
-            <span className="absolute -left-3.5 top-1 h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white" />
+            <span className="absolute -left-3.5 top-1 h-2 w-2 rounded-full bg-primary-500 ring-2 ring-[var(--surface)]" />
             <p className="text-sm font-medium text-ink-800 capitalize">{i.type}</p>
             {i.note && <p className="text-xs text-ink-600">{i.note}</p>}
             <p className="text-[11px] text-ink-400">{formatRelative(i.happened_at)}</p>

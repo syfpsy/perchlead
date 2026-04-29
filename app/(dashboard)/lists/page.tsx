@@ -13,6 +13,7 @@ import { store } from "@/lib/store/data-store";
 import { nid, nowIso } from "@/lib/utils/id";
 import { useToast } from "@/components/ui/toast";
 import { EditListModal } from "@/components/leads/edit-list-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SavedList } from "@/types";
 
 export default function ListsPage() {
@@ -22,6 +23,7 @@ export default function ListsPage() {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<SavedList | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   function createList() {
     if (!name.trim()) return;
@@ -41,11 +43,7 @@ export default function ListsPage() {
   }
 
   function deleteList(id: string) {
-    if (!window.confirm("Delete this list?")) return;
-    store.update((s) => {
-      s.lists = s.lists.filter((l) => l.id !== id);
-    });
-    toast.push({ tone: "info", title: "List deleted" });
+    setConfirmDeleteId(id);
   }
 
   return (
@@ -69,7 +67,7 @@ export default function ListsPage() {
             placeholder="e.g. Buyers in Berlin"
             radius="lg"
             classNames={{
-              inputWrapper: "border-soft bg-white shadow-none",
+              inputWrapper: "border-soft bg-panel shadow-none",
               input: "text-sm",
             }}
             variant="bordered"
@@ -174,6 +172,23 @@ export default function ListsPage() {
         products={snapshot.products}
         sources={snapshot.sources}
         onOpenChange={(o) => !o && setEditing(null)}
+      />
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete this list?"
+        description="The list will be permanently removed. Leads inside it won't be affected."
+        confirmLabel="Delete list"
+        isDangerous
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            store.update((s) => {
+              s.lists = s.lists.filter((l) => l.id !== confirmDeleteId);
+            });
+            toast.push({ tone: "info", title: "List deleted" });
+          }
+          setConfirmDeleteId(null);
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
       />
     </div>
   );
