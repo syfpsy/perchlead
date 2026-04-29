@@ -152,7 +152,7 @@ export function EmailDraftModal({
           </Tabs>
           <p className="text-[11px] text-ink-500">{template.description}</p>
 
-          <div className="rounded-2xl border border-soft bg-white">
+          <div className="rounded-2xl border border-soft bg-panel">
             <div className="flex items-center gap-2 border-b border-soft px-3 py-2">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
                 To
@@ -192,7 +192,7 @@ export function EmailDraftModal({
               <Button
                 variant="bordered"
                 radius="lg"
-                className="border-soft bg-white"
+                className="border-soft bg-panel"
                 startContent={<Copy className="h-3.5 w-3.5" />}
                 onPress={copy}
               >

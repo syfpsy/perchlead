@@ -109,7 +109,7 @@ function ActivityPageInner() {
           <div className="flex items-center gap-2">
             <Link
               href={`/leads/${focusedLead.id}`}
-              className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-ink-700 ring-1 ring-soft hover:bg-ink-50"
+              className="rounded-full bg-panel px-2.5 py-1 text-[11px] font-medium text-ink-700 ring-1 ring-soft hover:bg-ink-50 dark:hover:bg-ink-800"
             >
               Open profile
             </Link>
@@ -136,7 +136,7 @@ function ActivityPageInner() {
           value={query}
           onValueChange={setQuery}
           classNames={{
-            inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+            inputWrapper: "border-soft bg-panel shadow-none data-[hover=true]:border-firm",
             input: "text-sm",
           }}
           className="flex-1"

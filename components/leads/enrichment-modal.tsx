@@ -230,11 +230,11 @@ export function EnrichmentModal({
               ))}
             </ul>
           ) : rows.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-firm bg-white/50 px-4 py-6 text-center text-sm text-ink-500">
+            <p className="rounded-xl border border-dashed border-firm bg-white/50 dark:bg-ink-900/50 px-4 py-6 text-center text-sm text-ink-500">
               The provider didn't return anything new. Try wiring up a real provider.
             </p>
           ) : noChangesNeeded ? (
-            <p className="rounded-xl border border-dashed border-firm bg-white/50 px-4 py-6 text-center text-sm text-ink-500">
+            <p className="rounded-xl border border-dashed border-firm bg-white/50 dark:bg-ink-900/50 px-4 py-6 text-center text-sm text-ink-500">
               All proposed fields already match what we have on file.
             </p>
           ) : (
@@ -251,7 +251,7 @@ export function EnrichmentModal({
                         ? "border-soft bg-ink-50/60 opacity-70"
                         : isAccepted
                           ? "border-primary-200 bg-primary-50/40"
-                          : "border-soft bg-white",
+                          : "border-soft bg-panel",
                     )}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -285,7 +285,7 @@ export function EnrichmentModal({
                       />
                     </div>
                     <div className="mt-2 flex items-start gap-2 text-sm">
-                      <div className="min-w-0 flex-1 rounded-xl bg-white px-3 py-1.5 text-ink-600 ring-1 ring-soft">
+                      <div className="min-w-0 flex-1 rounded-xl bg-panel px-3 py-1.5 text-ink-600 ring-1 ring-soft">
                         <p className="text-[10px] uppercase tracking-wider text-ink-400">Current</p>
                         <p className="truncate">{row.current || <span className="text-ink-300">—</span>}</p>
                       </div>
@@ -294,7 +294,7 @@ export function EnrichmentModal({
                         className={clsx(
                           "min-w-0 flex-1 rounded-xl px-3 py-1.5 ring-1",
                           same
-                            ? "bg-white text-ink-500 ring-soft"
+                            ? "bg-panel text-ink-500 ring-soft"
                             : "bg-primary-50 text-ink-900 ring-primary-200",
                         )}
                       >

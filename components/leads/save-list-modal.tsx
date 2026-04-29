@@ -90,7 +90,7 @@ export function SaveListModal({
 function FilterPreview({ filters }: { filters: LeadFilters }) {
   const chips = describeFilters(filters);
   return (
-    <div className="rounded-2xl border border-soft bg-white p-3">
+    <div className="rounded-2xl border border-soft bg-panel p-3">
       <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
         Will be saved
       </p>

@@ -142,7 +142,7 @@ export default function ImportsPage() {
             <Button
               variant="bordered"
               radius="lg"
-              className="border-soft bg-white"
+              className="border-soft bg-panel"
               startContent={<ChevronLeft className="h-4 w-4" />}
               onPress={reset}
             >
@@ -280,7 +280,7 @@ export default function ImportsPage() {
                 <SelectItem key={opt.key}>{opt.label}</SelectItem>
               ))}
             </Select>
-            <div className="flex items-center justify-between rounded-xl border border-soft bg-white px-3 py-2">
+            <div className="flex items-center justify-between rounded-xl border border-soft bg-panel px-3 py-2">
               <div>
                 <p className="text-xs font-semibold text-ink-800">Skip likely duplicates</p>
                 <p className="text-[11px] text-ink-500">
@@ -324,7 +324,7 @@ export default function ImportsPage() {
               <Button as={Link} href="/leads" color="primary" radius="lg">
                 Go to Inbox
               </Button>
-              <Button variant="bordered" radius="lg" className="border-soft bg-white" onPress={reset}>
+              <Button variant="bordered" radius="lg" className="border-soft bg-panel" onPress={reset}>
                 Import another
               </Button>
             </div>
@@ -449,7 +449,7 @@ function SourceCatalog({ onPick }: { onPick: (type: SourceType) => void }) {
             key={src.type}
             type="button"
             onClick={() => onPick(src.type)}
-            className="rounded-2xl border border-soft bg-white px-3 py-2 text-left text-xs text-ink-600 transition hover:border-primary-200 hover:bg-primary-50/50"
+            className="rounded-2xl border border-soft bg-panel px-3 py-2 text-left text-xs text-ink-600 transition hover:border-primary-200 hover:bg-primary-50/50"
           >
             <p className="font-semibold text-ink-800">{src.label}</p>
             <p className="mt-0.5 text-[11px] text-ink-500">{src.helper}</p>
@@ -471,7 +471,7 @@ function RecentImportsCard({ recent }: { recent: ReturnType<typeof useSnapshot>[
           {recent.map((imp) => (
             <li
               key={imp.id}
-              className="rounded-xl border border-soft bg-white px-3 py-2 text-xs"
+              className="rounded-xl border border-soft bg-panel px-3 py-2 text-xs"
             >
               <div className="flex items-center justify-between">
                 <p className="truncate font-medium text-ink-800">{imp.filename}</p>

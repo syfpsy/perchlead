@@ -76,7 +76,7 @@ export function ImportUploader({ onParsed }: Props) {
             size="sm"
             radius="lg"
             variant="bordered"
-            className="border-soft bg-white"
+            className="border-soft bg-panel"
             startContent={<Sparkles className="h-4 w-4" />}
             onPress={() => {
               const table = parseCsvText(SAMPLE_CSV);
@@ -108,7 +108,7 @@ export function ImportUploader({ onParsed }: Props) {
           onChange={(e) => setPasteValue(e.target.value)}
           rows={10}
           spellCheck={false}
-          className="mt-3 flex-1 resize-y rounded-2xl border border-soft bg-white p-3 font-mono text-xs text-ink-800 outline-none focus:border-primary-400"
+          className="mt-3 flex-1 resize-y rounded-2xl border border-soft bg-panel p-3 font-mono text-xs text-ink-800 dark:text-ink-100 outline-none focus:border-primary-400"
           placeholder={"name\temail\tcompany\nMaya\tmaya@…\tStudio Pekar"}
         />
         <div className="mt-3 flex justify-end gap-2">

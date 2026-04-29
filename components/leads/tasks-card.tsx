@@ -43,7 +43,7 @@ export function TasksCard({ leadId, tasks }: { leadId: string; tasks: Task[] }) 
             variant="bordered"
             className="flex-1"
             classNames={{
-              inputWrapper: "border-soft bg-white shadow-none",
+              inputWrapper: "border-soft bg-panel shadow-none",
               input: "text-sm",
             }}
             onKeyDown={(e) => e.key === "Enter" && add()}
@@ -57,7 +57,7 @@ export function TasksCard({ leadId, tasks }: { leadId: string; tasks: Task[] }) 
             variant="bordered"
             className="sm:w-44"
             classNames={{
-              inputWrapper: "border-soft bg-white shadow-none",
+              inputWrapper: "border-soft bg-panel shadow-none",
               input: "text-sm",
             }}
             startContent={<Calendar className="h-3.5 w-3.5 text-ink-400" />}
@@ -74,7 +74,7 @@ export function TasksCard({ leadId, tasks }: { leadId: string; tasks: Task[] }) 
         </div>
 
         {open.length === 0 && done.length === 0 && (
-          <p className="rounded-xl border border-dashed border-firm bg-white/40 px-3 py-3 text-center text-xs text-ink-500">
+          <p className="rounded-xl border border-dashed border-firm bg-white/40 dark:bg-ink-900/20 px-3 py-3 text-center text-xs text-ink-500">
             No tasks yet. Add the next concrete step.
           </p>
         )}
@@ -114,7 +114,7 @@ function TaskRow({ task }: { task: Task }) {
     <li
       className={clsx(
         "flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm transition",
-        checked ? "border-soft bg-ink-50/50 text-ink-400" : "border-soft bg-white",
+        checked ? "border-soft bg-ink-50/50 text-ink-400" : "border-soft bg-panel",
       )}
     >
       <button
@@ -126,7 +126,7 @@ function TaskRow({ task }: { task: Task }) {
           "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
           checked
             ? "border-emerald-300 bg-emerald-50 text-emerald-600"
-            : "border-firm bg-white text-transparent hover:text-ink-300",
+            : "border-firm bg-panel text-transparent hover:text-ink-300",
         )}
         aria-label={checked ? "Mark as open" : "Mark as done"}
       >

@@ -56,8 +56,8 @@ const DEFAULT_VALUES: LeadDraftInput = {
  */
 const fieldCn = {
   inputWrapper:
-    "border-soft bg-white shadow-none data-[hover=true]:border-firm",
-  input: "text-sm text-ink-900",
+    "border-soft bg-panel shadow-none data-[hover=true]:border-firm",
+  input: "text-sm",
 } as const;
 
 export function LeadCreateModal({
@@ -157,12 +157,12 @@ export function LeadCreateModal({
         */}
         <form onSubmit={submit} noValidate>
           <ModalHeader className="flex flex-col gap-0.5">
-            <h3 className="text-lg font-semibold tracking-tightish text-ink-900">
+            <h3 className="text-lg font-semibold tracking-tightish text-ink-900 dark:text-ink-100">
               Add a lead
             </h3>
             <p className="text-xs font-normal text-ink-500">
               Name is the only required field. Bare domains auto-prefix with{" "}
-              <code className="rounded bg-ink-100 px-1 py-0.5 text-[10px]">
+              <code className="rounded bg-ink-100 dark:bg-ink-800 px-1 py-0.5 text-[10px]">
                 https://
               </code>
               .
@@ -213,7 +213,7 @@ export function LeadCreateModal({
                       {duplicates.map((d) => (
                         <li
                           key={d.lead.id}
-                          className="flex items-center justify-between gap-2 rounded-lg bg-white px-2 py-1 ring-1 ring-amber-100"
+                          className="flex items-center justify-between gap-2 rounded-lg bg-panel px-2 py-1 ring-1 ring-amber-100"
                         >
                           <Link
                             href={`/leads/${d.lead.id}`}
@@ -312,7 +312,7 @@ export function LeadCreateModal({
                   }}
                   classNames={{
                     trigger:
-                      "border-soft bg-white shadow-none data-[hover=true]:border-firm min-h-[54px]",
+                      "border-soft bg-panel shadow-none data-[hover=true]:border-firm min-h-[54px]",
                     value: "text-sm",
                     label: "text-sm",
                   }}
@@ -333,8 +333,8 @@ export function LeadCreateModal({
               placeholder="What do you know about this lead?"
               classNames={{
                 inputWrapper:
-                  "border-soft bg-white shadow-none data-[hover=true]:border-firm",
-                input: "text-sm text-ink-900",
+                  "border-soft bg-panel shadow-none data-[hover=true]:border-firm",
+                input: "text-sm",
               }}
             />
           </ModalBody>

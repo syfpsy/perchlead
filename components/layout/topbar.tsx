@@ -53,7 +53,7 @@ export function Topbar() {
           startContent={<Search className="h-4 w-4 text-ink-400" />}
           endContent={
             <span className="hidden items-center gap-1 text-[10px] text-ink-400 sm:flex">
-              <kbd className="rounded border border-firm bg-white px-1 py-0.5">⌘K</kbd>
+              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">⌘K</kbd>
             </span>
           }
           radius="lg"

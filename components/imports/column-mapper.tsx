@@ -50,7 +50,7 @@ export function ColumnMapper({
         const meta = FIELD_LABELS[field];
         const value = mapping[field] ?? NONE;
         return (
-          <div key={field} className="rounded-2xl border border-soft bg-white px-3 py-2.5">
+          <div key={field} className="rounded-2xl border border-soft bg-panel px-3 py-2.5">
             <div className="flex items-baseline justify-between gap-2">
               <p className="text-xs font-semibold text-ink-700">{meta.label}</p>
               {mapping[field] && (

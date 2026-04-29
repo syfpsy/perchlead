@@ -168,7 +168,7 @@ export function ProductInterestCard({
                               : level === "medium"
                                 ? "bg-amber-50 text-amber-700 ring-amber-200"
                                 : "bg-ink-100 text-ink-700 ring-ink-200"
-                            : "bg-white text-ink-500 ring-soft hover:bg-ink-50",
+                            : "bg-panel text-ink-500 ring-soft hover:bg-ink-50 dark:hover:bg-ink-800",
                         )}
                       >
                         {level}
@@ -332,7 +332,7 @@ export function TagsCard({
                 <button
                   key={t.id}
                   onClick={() => onAdd(t.id)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-xs text-ink-700 ring-1 ring-soft hover:bg-ink-50"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-panel px-2 py-1 text-xs text-ink-700 ring-1 ring-soft hover:bg-ink-50"
                 >
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} />
                   {t.name}
@@ -419,7 +419,7 @@ export function CompliancePanel({
           "mt-3 text-xs",
           lead.is_suppressed
             ? "bg-emerald-50 text-emerald-700"
-            : "border-soft bg-white text-red-700",
+            : "border-soft bg-panel text-red-700",
         )}
         startContent={<ShieldOff className="h-3 w-3" />}
         onPress={onSuppressToggle}

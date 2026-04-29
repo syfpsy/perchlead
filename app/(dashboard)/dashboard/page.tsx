@@ -76,7 +76,7 @@ export default function DashboardPage() {
         description="A calm, fast read of where your leads stand right now."
         actions={
           <>
-            <Button as={Link} href="/imports" variant="bordered" radius="lg" className="border-soft bg-white" startContent={<Upload className="h-4 w-4" />}>
+            <Button as={Link} href="/imports" variant="bordered" radius="lg" className="border-soft bg-panel" startContent={<Upload className="h-4 w-4" />}>
               Import
             </Button>
             <Button as={Link} href="/leads?new=1" color="primary" radius="lg" startContent={<Sparkles className="h-4 w-4" />}>
@@ -259,7 +259,7 @@ export default function DashboardPage() {
               {topSources.map(([name, count]) => (
                 <li
                   key={name}
-                  className="flex items-center justify-between rounded-xl border border-soft bg-white px-3 py-2 text-xs"
+                  className="flex items-center justify-between rounded-xl border border-soft bg-panel px-3 py-2 text-xs"
                 >
                   <span className="truncate text-ink-700">{name}</span>
                   <span className="rounded-full bg-ink-100 px-2 py-0.5 text-ink-600 tabular-nums">{count}</span>

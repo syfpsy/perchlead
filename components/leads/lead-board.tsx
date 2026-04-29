@@ -285,7 +285,7 @@ function QuickMoveMenu({
             onMoveTo(s);
           }}
           className={clsx(
-            "rounded-full border bg-white px-2 py-0.5 text-[10px] font-medium shadow-pop transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+            "rounded-full border bg-panel px-2 py-0.5 text-[10px] font-medium shadow-pop transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
             COL_TONE[s],
           )}
         >

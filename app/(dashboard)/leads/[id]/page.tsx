@@ -173,7 +173,7 @@ export default function LeadProfilePage() {
                 size="sm"
                 radius="full"
                 variant="bordered"
-                className="h-7 w-7 min-w-7 border-soft bg-white"
+                className="h-7 w-7 min-w-7 border-soft bg-panel"
                 isDisabled={!neighbors.prev}
                 onPress={() => neighbors.prev && router.push(`/leads/${neighbors.prev}`)}
                 aria-label="Previous lead"
@@ -192,7 +192,7 @@ export default function LeadProfilePage() {
                 size="sm"
                 radius="full"
                 variant="bordered"
-                className="h-7 w-7 min-w-7 border-soft bg-white"
+                className="h-7 w-7 min-w-7 border-soft bg-panel"
                 isDisabled={!neighbors.next}
                 onPress={() => neighbors.next && router.push(`/leads/${neighbors.next}`)}
                 aria-label="Next lead"
@@ -227,7 +227,7 @@ export default function LeadProfilePage() {
               <Button
                 variant="bordered"
                 radius="lg"
-                className="border-soft bg-white"
+                className="border-soft bg-panel"
                 endContent={<ChevronDown className="h-4 w-4" />}
               >
                 <StatusChip status={lead.status} />
@@ -280,7 +280,7 @@ export default function LeadProfilePage() {
               <Button
                 radius="lg"
                 variant="bordered"
-                className="border-soft bg-white"
+                className="border-soft bg-panel"
               >
                 Log activity
               </Button>
@@ -295,7 +295,7 @@ export default function LeadProfilePage() {
                 maxRows={4}
                 variant="bordered"
                 classNames={{
-                  inputWrapper: "border-soft bg-white shadow-none",
+                  inputWrapper: "border-soft bg-panel shadow-none",
                   input: "text-sm",
                 }}
               />
@@ -319,7 +319,7 @@ export default function LeadProfilePage() {
           <Button
             radius="lg"
             variant="bordered"
-            className="border-soft bg-white text-red-700"
+            className="border-soft bg-panel text-red-700"
             startContent={<Trash2 className="h-4 w-4" />}
             onPress={() => setConfirmDeleteOpen(true)}
           >

@@ -288,7 +288,7 @@ export function CommandPalette() {
             autoComplete="off"
             spellCheck={false}
           />
-          <kbd className="rounded border border-firm bg-white px-1.5 py-0.5 text-[10px] text-ink-500">
+          <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1.5 py-0.5 text-[10px] text-ink-500">
             Esc
           </kbd>
         </div>
@@ -335,7 +335,7 @@ export function CommandPalette() {
                       />
                     )}
                     {item.kind === "command" && active === idx && (
-                      <kbd className="rounded border border-firm bg-white px-1.5 py-0.5 text-[10px] text-ink-500">
+                      <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1.5 py-0.5 text-[10px] text-ink-500">
                         ↵
                       </kbd>
                     )}
@@ -349,18 +349,18 @@ export function CommandPalette() {
         <footer className="flex items-center justify-between gap-3 border-t border-soft bg-ink-50/40 px-4 py-2 text-[11px] text-ink-500">
           <span className="inline-flex items-center gap-2">
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-firm bg-white px-1 py-0.5">↑</kbd>
-              <kbd className="rounded border border-firm bg-white px-1 py-0.5">↓</kbd>
+              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">↑</kbd>
+              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">↓</kbd>
               navigate
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="rounded border border-firm bg-white px-1 py-0.5">↵</kbd>
+              <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">↵</kbd>
               run
             </span>
           </span>
           <span className="inline-flex items-center gap-1">
-            <kbd className="rounded border border-firm bg-white px-1 py-0.5">⌘</kbd>
-            <kbd className="rounded border border-firm bg-white px-1 py-0.5">K</kbd>
+            <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">⌘</kbd>
+            <kbd className="rounded border border-firm bg-white dark:bg-ink-800 px-1 py-0.5">K</kbd>
           </span>
         </footer>
       </div>

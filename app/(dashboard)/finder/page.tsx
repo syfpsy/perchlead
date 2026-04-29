@@ -97,7 +97,7 @@ export default function FinderPage() {
           value={query}
           onValueChange={setQuery}
           placeholder="animation studios in Berlin"
-          classNames={{ inputWrapper: "border-soft bg-white shadow-none", input: "text-sm" }}
+          classNames={{ inputWrapper: "border-soft bg-panel shadow-none", input: "text-sm" }}
         />
         <Input
           aria-label="Location"
@@ -106,7 +106,7 @@ export default function FinderPage() {
           value={location}
           onValueChange={setLocation}
           placeholder="Location"
-          classNames={{ inputWrapper: "border-soft bg-white shadow-none", input: "text-sm" }}
+          classNames={{ inputWrapper: "border-soft bg-panel shadow-none", input: "text-sm" }}
         />
         <Input
           aria-label="Niche"
@@ -115,7 +115,7 @@ export default function FinderPage() {
           value={niche}
           onValueChange={setNiche}
           placeholder="Niche"
-          classNames={{ inputWrapper: "border-soft bg-white shadow-none", input: "text-sm" }}
+          classNames={{ inputWrapper: "border-soft bg-panel shadow-none", input: "text-sm" }}
         />
         <Button color="primary" radius="lg" onPress={search} isLoading={loading}>
           Search

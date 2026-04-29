@@ -249,7 +249,7 @@ function LeadsPageInner() {
             <Button
               variant="bordered"
               radius="lg"
-              className="border-soft bg-white text-sm"
+              className="border-soft bg-panel text-sm"
               startContent={<FilterIcon className="h-4 w-4" />}
               onPress={() => setShowFilters((v) => !v)}
             >
@@ -261,7 +261,7 @@ function LeadsPageInner() {
               variant="bordered"
               radius="lg"
               startContent={<Upload className="h-4 w-4" />}
-              className="border-soft bg-white text-sm"
+              className="border-soft bg-panel text-sm"
             >
               Import
             </Button>
@@ -289,7 +289,7 @@ function LeadsPageInner() {
               value={filters.query ?? ""}
               onValueChange={(v) => setFilters((f) => ({ ...f, query: v }))}
               classNames={{
-                inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+                inputWrapper: "border-soft bg-panel shadow-none data-[hover=true]:border-firm",
                 input: "text-sm",
               }}
               className="flex-1"
@@ -431,7 +431,7 @@ function LeadsPageInner() {
                   <Button
                     variant="bordered"
                     radius="lg"
-                    className="border-soft bg-white"
+                    className="border-soft bg-panel"
                     startContent={<Sparkles className="h-4 w-4" />}
                     onPress={() => setCreateOpen(true)}
                   >

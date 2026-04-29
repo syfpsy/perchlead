@@ -18,6 +18,8 @@ const config: Config = {
         tightish: "-0.012em",
       },
       colors: {
+        panel: "rgb(var(--color-bg-panel))",
+        "bg-app": "rgb(var(--color-bg-app))",
         ink: {
           50: "#f7f8fa",
           100: "#eef0f4",
