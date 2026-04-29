@@ -334,7 +334,7 @@ export default function ImportsPage() {
 
       {step === "source" && parsed === null && snapshot.imports.length === 0 && (
         <p className="text-center text-xs text-ink-400">
-          Tip: try the “Use sample” button to see a clean import from end to end.
+          Tip: try the "Use sample" button to see a clean import from end to end.
         </p>
       )}
     </div>

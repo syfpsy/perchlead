@@ -74,7 +74,7 @@ export function EditListModal({
     store.update((s) => {
       s.lists = s.lists.filter((l) => l.id !== list!.id);
     });
-    toast.push({ tone: “info”, title: “List deleted” });
+    toast.push({ tone: "info", title: "List deleted" });
     setConfirmDelete(false);
     onOpenChange(false);
     onDeleted?.();

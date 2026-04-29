@@ -223,8 +223,8 @@ function LeadsPageInner() {
       tone: mode === "add" ? "success" : "info",
       title:
         mode === "add"
-          ? `Tagged ${selectedRows.length} as “${tag?.name ?? "?"}”`
-          : `Removed “${tag?.name ?? "?"}” from ${selectedRows.length}`,
+          ? `Tagged ${selectedRows.length} as "${tag?.name ?? "?"}"`
+          : `Removed "${tag?.name ?? "?"}" from ${selectedRows.length}`,
     });
   };
   const onBulkInterest = (productId: string, level: "low" | "medium" | "high") => {

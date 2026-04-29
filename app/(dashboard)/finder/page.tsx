@@ -149,7 +149,7 @@ export default function FinderPage() {
         <EmptyState
           icon={<Compass className="h-5 w-5" />}
           title="Search to surface results"
-          description="Try queries like ‘animation studios in Berlin’, ‘restaurants in Ataşehir’, or ‘mobile game studios hiring motion designers’."
+          description="Try queries like 'animation studios in Berlin', 'restaurants in Ataşehir', or 'mobile game studios hiring motion designers'."
         />
       ) : (
         <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">

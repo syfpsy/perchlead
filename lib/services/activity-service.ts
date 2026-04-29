@@ -61,7 +61,7 @@ export function buildActivityRows(snapshot: DataSnapshot): ActivityRow[] {
         entityLabel = lead?.name ?? `Lead ${log.entity_id.slice(0, 6)}`;
         entityHref = lead ? `/leads/${lead.id}` : undefined;
         if (log.action === "merge" && log.metadata_json?.mergedFromName) {
-          detail = `Merged in “${String(log.metadata_json.mergedFromName)}”`;
+          detail = `Merged in "${String(log.metadata_json.mergedFromName)}"`;
         } else if (log.action === "suppress" && log.metadata_json?.reason) {
           detail = String(log.metadata_json.reason);
         } else if (log.action === "import") {

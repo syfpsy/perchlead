@@ -26,7 +26,7 @@ export function normalizeCompanyName(input: string | null | undefined): string {
   if (!input) return "";
   return input
     .toLowerCase()
-    .replace(/[’']/g, "")
+    .replace(/['']/g, "")
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(
       /\b(inc|incorporated|llc|ltd|limited|gmbh|sa|sas|bv|oy|ab|co|company|corp|corporation|holdings|group|labs|studio|studios)\b/g,
