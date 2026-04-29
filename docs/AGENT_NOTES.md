@@ -362,3 +362,64 @@ User: "keep improving". Picked six features that compound — three close real U
 - No "view editing UX" yet for the inbox tabs themselves (you can edit a saved list from /lists, but the inbox doesn't have an inline edit affordance for the active tab). A small pencil next to the active tab would close that loop.
 - Score badge could use a tasteful number tick-up animation. Skipped this round to keep motion focused.
 - `prefers-reduced-motion` not yet honored — Framer Motion respects it by default for `animate`, but I should add explicit guards before adding more motion.
+
+## 2026-04-29 — Add Lead modal bug fixes + kanban board view
+
+User: "keep building. there are visual bugs on the panels when we try to add leads".
+
+### Bug fixes — Add Lead modal (comprehensive rewrite)
+
+Five visual bugs identified and fixed in `components/leads/lead-create-modal.tsx`:
+
+1. **`type="email"` native validation UI** — Even with `noValidate`, `type="email"` in HeroUI v2 can render the browser's own invalid badge. Removed; kept `inputMode="email"` for mobile keyboard hint.
+
+2. **Modal overflow and clipping** — `size="lg"` without `scrollBehavior="inside"` let the body overflow the viewport on smaller screens. Changed to `size="xl"` + `scrollBehavior="inside"` so the header and footer stay fixed, only the body scrolls.
+
+3. **Grid height mismatch on validation errors** — Name and Email both had `isInvalid` + `errorMessage`; when one showed an error and the sibling column didn't, the HeroUI in-flow `helperWrapper` made the pair uneven. Fixed by pulling Name and Email out of the grid entirely — each is now full-width, removing the pairing problem. The remaining 6 optional inputs (title, phone, company, location, website, LinkedIn) live in the 2-col grid and have no inline error display.
+
+4. **Inconsistent Input/Select appearance** — Inputs had no `variant` prop (defaulting to HeroUI flat) while the Select used `classNames.trigger = "border-soft"` without `variant="bordered"`. All inputs and the Select now use `variant="bordered"` with a shared `fieldCn` const for consistent `border-soft bg-white shadow-none hover:border-firm`.
+
+5. **Wrong icon on duplicate banner** — `Copy` (clipboard/pages icon) was used where `AlertTriangle` belongs. Fixed.
+
+Structural improvement: the duplicate detection banner now appears **between** the identity fields (Name + Email) and the optional detail grid, not above everything. It's contextually anchored to the fields that triggered it.
+
+### New feature — kanban / board view on the leads inbox
+
+New file `components/leads/lead-board.tsx` and a view-mode toggle in `app/(dashboard)/leads/page.tsx`.
+
+**Board mechanics:**
+- Six pipeline columns: New · Qualified · Contacted · Replied · Converted · Rejected.
+- `cleaned` + `enriched` funnel into New; `do_not_contact` funnels into Rejected — keeps the board at 6 cols.
+- Framer Motion stagger animation (15ms per card, capped at 250ms) on initial render.
+- Columns have a tone-coded header (`border-emerald-200 bg-emerald-50` for Qualified, etc.) with live count.
+- Empty columns show a dashed "Empty" placeholder rather than disappearing.
+
+**Board cards:**
+- Avatar + name + company (or email fallback).
+- Score badge + suppression shield.
+- Top product interest with level colour (high=emerald, medium=amber).
+- Up to 2 tag chips with a "+N" overflow.
+- Click the card → navigates to `/leads/[id]`.
+
+**Quick-move menu:**
+- On card hover, a set of mini status pills appears below the card (absolute positioned, opacity transition). Clicking one calls `setLeadStatus` + shows a toast — re-stages the lead without navigating away.
+- The current column's status is excluded from the menu.
+
+**Toolbar integration:**
+- Board toggle button (`KanbanSquare` icon) lives to the right of the density toggle.
+- In board mode: the density toggle is hidden (irrelevant); the toggle button itself gets `variant="flat" color="primary"` to show active state.
+- Entering board mode forces the inbox tab to "All" so all pipeline columns are populated.
+- View mode persists to `localStorage` (`perchlead.inbox_view`).
+
+**TypeScript note:** `PIPELINE` is `as const` to get the narrow union `"new" | "qualified" | ...` as `PipelineCol`. This lets `COL_TONE` be typed `Record<PipelineCol, string>` (only 6 keys) without TypeScript complaining about missing `cleaned`, `enriched`, `do_not_contact` entries.
+
+### Build state
+- typecheck 0 errors, lint clean, `npm run build` 12 routes (no new route).
+- `/leads` 40.9 kB (+1.3 kB for the board component + imports).
+- Commit `b6ceb4c`, pushed, auto-deployed to Vercel.
+
+### What's still open
+- Board view has no DnD. A drag-and-drop layer (with `@dnd-kit/core`) is a natural v0.2 add — the move logic is already in `handleStatusDrop`.
+- "Bulk enrich" still not in the bulk-actions bar (each lead needs a diff modal — that multiplies complexity; defer to v0.2).
+- Board doesn't paginate (all filtered leads load). Fine for the localStorage mock; Neon will need server-side pagination or virtualization before boards with 1K+ rows.
+- `prefers-reduced-motion` guard still missing for the Framer stagger — add before shipping any more motion.
