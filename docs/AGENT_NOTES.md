@@ -423,3 +423,46 @@ New file `components/leads/lead-board.tsx` and a view-mode toggle in `app/(dashb
 - "Bulk enrich" still not in the bulk-actions bar (each lead needs a diff modal — that multiplies complexity; defer to v0.2).
 - Board doesn't paginate (all filtered leads load). Fine for the localStorage mock; Neon will need server-side pagination or virtualization before boards with 1K+ rows.
 - `prefers-reduced-motion` guard still missing for the Framer stagger — add before shipping any more motion.
+
+## 2026-04-29 — Dashboard funnel · staleness badges · email template CRUD
+
+User: "keep improving". Three compounding improvements that raise the analytic + operational value floor.
+
+### What landed
+
+**1. Pipeline funnel widget on the dashboard.**
+- Inserted between the 6-stat card row and the "Best leads this week" row.
+- One clickable row per pipeline stage (New → Qualified → Contacted → Replied → Converted → Rejected).
+- Each row: stage label (colour-coded) · horizontal bar proportional to count · count · % of total · "X% from prev" conversion rate (emerald ≥50%, amber ≥25%, red <25%). The "from prev" column is blank on the first row.
+- Clicking a row navigates to the correct inbox view: `new` → `?view=new`, `qualified` → `?view=qualified`, `contacted`/`replied` → `?view=needs_followup`, others → `?view=all`.
+- Suppressed leads are excluded with a footer count.
+- The widget is gated by `total > 0` so it doesn't show on an empty workspace.
+- File: `app/(dashboard)/dashboard/page.tsx`.
+
+**2. Staleness badges on the lead table and board cards.**
+- `lead-table.tsx` Status cell: when `leadStaleness(row).isStale`, renders an amber pill ("Xd" + clock icon) below the `StatusChip`. Tooltip shows the reason string from the staleness service (e.g. "Contacted 7d ago, no reply (SLA 4d).").
+- `lead-board.tsx` board cards: same "Xd idle" amber pill appears between the name/score row and the top product interest row. Uses a `title` attribute instead of a Tooltip (board cards are already information-dense).
+- Both components import `leadStaleness` from `lib/services/staleness-service` — no new logic, just surface existing data.
+
+**3. Email templates CRUD in Settings.**
+- New "Templates" tab in `app/(dashboard)/settings/page.tsx` (inserted before "Data & Neon").
+- `TemplatesPanel`: two sections — "Built-in" (read-only list, each with a Clone button) and "Custom" (editable + deletable). Empty custom state shows a hint. "New template" button opens the modal.
+- `TemplateModal`: form with label, description, subject, body (monospaced textarea). Variables reference inline in the header. Supports create, clone (new id from built-in data), and edit (in-place update via `store.update`).
+- `EmailDraftModal` updated: `useSnapshot` pulls `snapshot.email_templates`; `allTemplates = [...TEMPLATES, ...snapshot.email_templates]` is memoized; all three `TEMPLATES` references replaced with `allTemplates`. Deps corrected on both `useEffect` and `useMemo`.
+
+### Type changes
+- `types/index.ts`: `EmailTemplate` interface added (previously defined inline in `email-template-service.ts`). Fields: `id`, `label`, `description`, `subject`, `body`, `recommendedFor?`, `created_at?`, `updated_at?` (optional so built-in TEMPLATES constant doesn't need dates). `DataSnapshot` gains `email_templates?: EmailTemplate[]`.
+- `lib/services/email-template-service.ts`: local interface removed; imports + re-exports `EmailTemplate` from `@/types` for backward compat (no importers need to change).
+- `lib/store/data-store.ts`: `emptySnapshot()` initialises `email_templates: []`.
+
+### Build state
+- typecheck 0 errors, `npm run build` 12 routes, all green.
+- `/settings` 10.7 kB (+2 kB for templates panel + modal).
+- `/dashboard` 6.36 kB (+0.85 kB for funnel widget).
+- Commit `38e6bb7`, pushed, auto-deploying to Vercel.
+
+### What's still open
+- Funnel clicking "converted" or "rejected" lands on `?view=all` — there's no dedicated inbox tab for those terminal statuses. A future filter-by-status shorthand could improve this.
+- Template preview (render with sample data before saving) would catch `{{unfilled_var}}` mistakes early.
+- Board cards use a `title` attribute for the staleness reason — screen readers see it, but mobile users don't hover. A tap-to-expand detail card would cover that gap.
+- `prefers-reduced-motion` guard still missing from Framer stagger animations.
