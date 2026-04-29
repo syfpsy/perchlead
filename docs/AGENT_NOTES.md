@@ -718,3 +718,59 @@ Resumed from previous session where the visual bugs (blank labels, tab overflow)
 - `aria-label` warnings from react-aria-components (non-blocking, accessibility polish).
 - Full native v3 migration (remove shim entirely) — each page can be migrated independently when ready; the shim is now stable.
 - Custom domain, Neon wiring.
+
+## 2026-04-29 — Quality audit fix sweep (20 issues across 15 files)
+
+User: `/audit` then "fix all thoroughly". Comprehensive pass continuing from a previous context window that ran out mid-sweep.
+
+### What landed (15 files changed, all fixes from the audit)
+
+**CSS / Tailwind tokens**
+- `app/globals.css`: added `--font-display` to `@theme` (was missing — `font-display` class produced nothing). Added `@utility bg-soft` (`background-color: var(--separator)`) — used in `bulk-actions.tsx` but was undefined.
+
+**Dark mode — board column headers**
+- `components/leads/lead-board.tsx`: `COL_TONE` const now has dark: variants for all 6 pipeline statuses (new, qualified, contacted, replied, converted, rejected). Static strings in a const object so Tailwind's build scanner picks them up correctly.
+
+**Dashboard — purge-safe tone classes**
+- `app/(dashboard)/dashboard/page.tsx`: extracted `PIPELINE_TONE_CLS` module-level const for the inline overview row (was a ternary inside JSX — Tailwind scanner can miss those). Added `dark:` variants to `Stat` palette + `FUNNEL_STAGES` bgBar/color strings.
+
+**Surface tokens**
+- `app/(dashboard)/settings/page.tsx`: `replace_all` — every `bg-white` (18 instances including `bg-white/50`) → `bg-panel`.
+- `app/(dashboard)/lists/page.tsx`: `bg-white` in create-input wrapper → `bg-panel`.
+- `components/layout/command-palette.tsx`: all 7 `<kbd>` `bg-white dark:bg-ink-800` → `bg-panel`.
+- `components/leads/lead-board.tsx`: count badge `bg-white/70` → `bg-panel/70`; empty-cell `bg-white/40` → `bg-panel/40`.
+
+**Accessibility — keyboard nav on table rows**
+- `components/leads/lead-table.tsx`: `<tr>` rows get `tabIndex={0}`, `focus-visible:ring-2 ring-inset ring-primary-500`, `onKeyDown` Enter/Space → `onRowClick`. Action links changed from `invisible/group-hover:visible` to `opacity-0/group-hover:opacity-100 focus:opacity-100` so they're reachable by keyboard.
+
+**Accessibility — window.confirm → ConfirmDialog (all 4 remaining sites)**
+- `app/(dashboard)/leads/page.tsx` — bulk delete confirmation (was already done in previous session).
+- `app/(dashboard)/lists/page.tsx` — list delete confirmation (was already done).
+- `components/leads/edit-list-modal.tsx` — added `confirmDelete` state, `remove()` → `setConfirmDelete(true)`, `confirmRemove()` handler, `<ConfirmDialog>` JSX in Fragment wrapper.
+- `components/layout/command-palette.tsx` — added `pendingConfirm: "restore" | "clear" | null` state. Restructured JSX from early-return to Fragment (`{!open && <sr-only button>}` + `{open && <dialog>}` + always-rendered dual `<ConfirmDialog>`). Added focus trap (`containerRef` + `handleContainerKeyDown` Tab/Shift+Tab), focus save/restore (`lastFocusRef`).
+
+**Accessibility — touch targets**
+- `app/(dashboard)/leads/[id]/page.tsx`: prev/next nav buttons `h-7 w-7 min-w-7` → `h-9 w-9 min-w-9`.
+- `components/leads/lead-board.tsx`: QuickMoveMenu buttons `min-h-[32px]` + `px-2.5 py-1`.
+
+**Accessibility — heading hierarchy**
+- `app/(dashboard)/dashboard/page.tsx`: all section `<h3>` → `<h2>`.
+- `app/(dashboard)/settings/page.tsx`: Section component `<h3>` → `<h2>`.
+- `app/(dashboard)/leads/[id]/page.tsx`: `LeadActivityCard` heading `<h3>` → `<h2>`.
+
+**Design — misc anti-patterns**
+- `components/ui/empty-state.tsx`: icon before title in DOM order; `aria-hidden="true"` on icon wrapper.
+- `components/ui/score-badge.tsx`: `text-foreground` → `text-ink-800` (semantic token).
+- `components/layout/sidebar.tsx`: removed `tagline` dead-data field from NAV type and all 8 NAV entries.
+- `components/leads/lead-board.tsx`: `style={{ minHeight: 420 }}` → `className="... min-h-[420px]"` (Tailwind not inline style).
+- `components/leads/profile-cards.tsx`: timeline dot ring `ring-2 ring-white` → `ring-2 ring-[var(--surface)]` (dark-mode aware).
+- `components/leads/bulk-actions.tsx`: Framer spring (`type: "spring"`) replaced with ease-out-expo `[0.16, 1, 0.3, 1]` enter + `[0.4, 0, 1, 1]` exit (no bounce).
+
+### Build state
+- Commit `10b90b9`, pushed, auto-deploying to Vercel.
+
+### What's still open
+- Board DnD (`@dnd-kit/core`) — deferred.
+- `prefers-reduced-motion` guards on Framer stagger in board + activity rows — explicitly check `shouldReduceMotion` in those components.
+- Full native v3 shim removal — progressive, one page at a time.
+- Custom domain, Neon wiring.
