@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Popover, PopoverContent, PopoverTrigger, Textarea, Tooltip } from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Popover, PopoverContent, PopoverTrigger, Textarea, Tooltip } from "@/lib/heroui-compat";
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Mail, Sparkles, Trash2 } from "lucide-react";
 
 import { useSnapshot } from "@/lib/store/use-snapshot";

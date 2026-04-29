@@ -1,6 +1,6 @@
 "use client";
 
-import { Select, SelectItem } from "@heroui/react";
+import { Select, SelectItem } from "@/lib/heroui-compat";
 import type { ColumnMapping } from "@/types";
 
 const FIELD_LABELS: Record<keyof ColumnMapping, { label: string; helper?: string }> = {
@@ -66,7 +66,7 @@ export function ColumnMapper({
               variant="bordered"
               selectedKeys={[value]}
               onSelectionChange={(keys) => {
-                const k = Array.from(keys)[0] as string;
+                const k = Array.from(keys as Iterable<React.Key>)[0] as string;
                 if (!k || k === NONE) {
                   const next = { ...mapping };
                   delete next[field];

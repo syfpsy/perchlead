@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Input, Tab, Tabs } from "@heroui/react";
+import { Button, Input, Tab, Tabs } from "@/lib/heroui-compat";
 import {
   ArrowUpRight,
   Download,
@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import clsx from "clsx";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";

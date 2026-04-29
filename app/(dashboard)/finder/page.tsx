@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, Select, SelectItem } from "@heroui/react";
+import { Button, Input, Select, SelectItem } from "@/lib/heroui-compat";
 import { Compass, Globe, Plus, Search } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";
@@ -131,7 +131,7 @@ export default function FinderPage() {
             size="sm"
             selectedKeys={[provider]}
             onSelectionChange={(keys) => {
-              const k = Array.from(keys)[0];
+              const k = Array.from(keys as Iterable<React.Key>)[0];
               if (k) setProvider(String(k));
             }}
             className="w-[220px]"

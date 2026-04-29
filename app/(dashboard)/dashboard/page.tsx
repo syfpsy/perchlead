@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { Button } from "@heroui/react";
+import { Button } from "@/lib/heroui-compat";
 import { ArrowUpRight, Sparkles, Upload } from "lucide-react";
 import clsx from "clsx";
 

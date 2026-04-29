@@ -8,7 +8,7 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-} from "@heroui/react";
+} from "@/lib/heroui-compat";
 import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { LeadFilters, Product, SavedList, Source, Tag } from "@/types";

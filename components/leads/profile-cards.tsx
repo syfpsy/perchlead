@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Tooltip } from "@heroui/react";
+import { Button, Tooltip } from "@/lib/heroui-compat";
 import {
   AtSign,
   Building2,

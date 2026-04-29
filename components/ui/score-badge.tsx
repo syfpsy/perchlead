@@ -1,6 +1,6 @@
 "use client";
 
-import { Tooltip } from "@heroui/react";
+import { Tooltip } from "@/lib/heroui-compat";
 import clsx from "clsx";
 import type { ScoreResult } from "@/types";
 

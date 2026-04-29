@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { Sidebar } from "@heroui-pro/react";
 import { usePathname } from "next/navigation";
-import { Tooltip } from "@heroui/react";
 import {
   CheckSquare,
   Compass,
@@ -13,10 +12,15 @@ import {
   Settings,
   Upload,
 } from "lucide-react";
-import clsx from "clsx";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
+import { useSnapshot } from "@/lib/store/use-snapshot";
 
-const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }>; tagline: string }> = [
+const NAV: Array<{
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tagline: string;
+}> = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard, tagline: "Today at a glance" },
   { href: "/leads", label: "Leads", icon: Inbox, tagline: "Your inbox of leads" },
   { href: "/tasks", label: "Tasks", icon: CheckSquare, tagline: "Open follow-ups across leads" },
@@ -27,58 +31,60 @@ const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ clas
   { href: "/settings", label: "Settings", icon: Settings, tagline: "Products, sources, compliance" },
 ];
 
-export function Sidebar() {
+export function AppSidebar() {
   const pathname = usePathname();
+  const snapshot = useSnapshot();
+  const leadCount = snapshot.leads.length;
 
   return (
-    <aside className="hidden w-[232px] shrink-0 flex-col border-r border-soft surface-panel md:flex">
-      <div className="flex h-14 items-center gap-2 px-5">
-        {/* Flat primary mark — no gradient */}
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600 text-white shadow-soft">
-          <span className="text-sm font-bold leading-none tracking-tight">P</span>
+    <Sidebar>
+      <Sidebar.Header>
+        <div className="flex items-center gap-2 px-2 py-1">
+          <div className="flex h-7 w-7 items-center justify-center rounded bg-accent text-accent-foreground font-bold text-sm">
+            P
+          </div>
+          <span className="font-semibold text-sm group-data-[collapsible=icon]:hidden">
+            Perchlead
+          </span>
         </div>
-        <div className="leading-tight">
-          <p className="font-display text-sm font-normal tracking-tightish text-ink-900">Perchlead</p>
-          <p className="text-[11px] text-ink-500">Lead memory</p>
-        </div>
-      </div>
-      <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-0.5 px-3 py-2">
-        {NAV.map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/" && pathname?.startsWith(`${item.href}/`));
-          const Icon = item.icon;
-          return (
-            <Tooltip key={item.href} placement="right" content={item.tagline} delay={500}>
-              <Link
-                href={item.href}
-                className={clsx(
-                  "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-                  active
-                    ? "bg-primary-50 text-primary-700 shadow-soft"
-                    : "text-ink-600 hover:bg-ink-100/70 hover:text-ink-900",
-                )}
-              >
-                <Icon className={clsx("h-4 w-4", active ? "text-primary-600" : "text-ink-400 group-hover:text-ink-700")} />
-                <span>{item.label}</span>
-              </Link>
-            </Tooltip>
-          );
-        })}
-      </nav>
-      <div className="m-3 space-y-2 rounded-2xl border border-dashed border-firm bg-ink-50/60 p-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-ink-700">Demo data on</p>
+      </Sidebar.Header>
+
+      <Sidebar.Content>
+        <Sidebar.Group>
+          <Sidebar.Menu>
+            {NAV.map(({ href, label, icon: Icon }) => {
+              const isCurrent =
+                pathname === href ||
+                (href !== "/dashboard" && pathname?.startsWith(href));
+              return (
+                <Sidebar.MenuItem
+                  key={href}
+                  href={href}
+                  isCurrent={isCurrent}
+                  textValue={label}
+                >
+                  <Sidebar.MenuIcon>
+                    <Icon className="h-4 w-4" />
+                  </Sidebar.MenuIcon>
+                  <Sidebar.MenuLabel>{label}</Sidebar.MenuLabel>
+                  {label === "Leads" && leadCount > 0 && (
+                    <Sidebar.MenuChip>{leadCount}</Sidebar.MenuChip>
+                  )}
+                </Sidebar.MenuItem>
+              );
+            })}
+          </Sidebar.Menu>
+        </Sidebar.Group>
+      </Sidebar.Content>
+
+      <Sidebar.Footer>
+        <div className="flex items-center justify-between px-2 py-2 group-data-[collapsible=icon]:justify-center">
+          <span className="text-xs text-muted group-data-[collapsible=icon]:hidden">
+            Demo data
+          </span>
           <DarkModeToggle />
         </div>
-        <p className="text-[11px] leading-relaxed text-ink-500">
-          You're running on a local mock. Wire up Neon from{" "}
-          <Link href="/settings" className="text-primary-600 hover:underline">
-            settings
-          </Link>{" "}
-          to go live.
-        </p>
-      </div>
-    </aside>
+      </Sidebar.Footer>
+    </Sidebar>
   );
 }

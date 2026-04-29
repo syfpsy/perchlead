@@ -11,7 +11,7 @@ import {
   Tabs,
   Textarea,
   Tooltip,
-} from "@heroui/react";
+} from "@/lib/heroui-compat";
 import { Check, Copy, Mail, Send } from "lucide-react";
 import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Popover, PopoverContent, PopoverTrigger, Tooltip } from "@heroui/react";
+import { Button, Popover, PopoverContent, PopoverTrigger, Tooltip } from "@/lib/heroui-compat";
 import {
   Check,
   Download,
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import type { LeadStatus, Product, Tag } from "@/types";
 import { statusLabel } from "@/components/ui/status-chip";
 

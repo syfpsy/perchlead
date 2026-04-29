@@ -8,7 +8,7 @@ import {
   ModalFooter,
   ModalHeader,
   Switch,
-} from "@heroui/react";
+} from "@/lib/heroui-compat";
 import { ArrowRight, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import { useEffect, useMemo, useState } from "react";
