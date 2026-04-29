@@ -228,3 +228,47 @@ User: "no supabase, we will use vercel and neon, pick. also create a repo named 
 2. Implement `lib/store/neon-store.ts` with the same surface as `data-store.ts`. Gate by `NEXT_PUBLIC_DATA_MODE`.
 3. Auth.js with email magic-link (Resend) — upserts into `public.users` on first sign-in.
 4. Custom domain.
+
+## 2026-04-29 — Activity viewer · enrichment with diff · profile keyboard nav
+
+User: "keep building more features, check what the best tools do". Picked the three highest-value gaps based on what Linear / Notion / Salesforce / Clay / Apollo / Superhuman do well.
+
+### What landed
+
+**1. `/activity` audit log viewer.** New page that surfaces the audit_logs we've been writing all along. Tabs: All / Leads / Imports / Exports / Compliance. Search across entity name + verb + detail. Day grouping (Today / Yesterday / friendly date). Tone-coded icon dot per action. Clickable entities deep-link to /leads/[id] or /imports. Empty state when nothing matches. Files:
+- `lib/services/activity-service.ts` — `buildActivityRows`, `activityForLead`, `filterActivity`. Pure functions over the snapshot.
+- `app/(dashboard)/activity/page.tsx` — the viewer UI.
+
+**2. Per-lead enrichment with a diff modal.** Profile gets an "Enrich" button. Click runs `mockEnrichmentProvider.enrich()` (already shipped) and opens a Clay-style review modal. Each proposed field shows a current ↔ proposed pair with an Accept toggle, scope chips (`lead` vs `company`), and "unchanged" badge for fields that already match. "Apply N changes" merges only accepted fields, writes a system interaction, bumps status from `new` → `enriched` if applicable, logs an audit entry. Provider seam now demonstrated end-to-end. Files:
+- `components/leads/enrichment-modal.tsx`.
+- Wired in `app/(dashboard)/leads/[id]/page.tsx` header.
+
+**3. Profile keyboard nav (`j` / `k` between filtered leads).** The inbox writes its filtered+sorted IDs to localStorage (`perchlead.inbox_cursor.v1`); the profile reads it on mount, computes `prev` / `next` / `index` / `total`, surfaces a breadcrumb ("12 / 47 in 'Motion studios'") with prev/next buttons, and binds `j` / `k` plus `⌘←` / `⌘→` plus `Esc` (back to inbox). Brand-promise win — moving through a triaged list is now keyboard-only. Files:
+- `lib/store/inbox-cursor.ts` — `writeInboxCursor`, `readInboxCursor`, `getNeighbors`.
+- Inbox writes after every filter change.
+- Profile reads + binds keys.
+
+**4. Per-lead "Audit trail" card on the profile.** Mirrors the global /activity page but filtered to that one lead. Shows the 8 most recent events with a "See all activity" link.
+
+**5. Wired into nav surfaces.** Sidebar gets an Activity item. Cmd+K palette gets an "Activity log" command (keywords: activity, audit, log, history, compliance).
+
+### Decisions
+- **Audit `entity_type` "company" was not in the original union.** When the enrichment modal patches a company, I write `entity_type: "company"` to audit_logs but TypeScript was happy because the enum is `string`-typed in the schema. Note for the v0.2 Neon migration: the SQL doesn't constrain this column to an enum — it's `text`, which is what we want for forward-compat (new entity types don't need a migration).
+- **Inbox cursor lives in localStorage**, not URL params. Two reasons: (1) deep-links to /leads/[id] from outside the inbox shouldn't carry stale filter state, (2) the cursor's ID list can be long, polluting URLs. Trade-off: opening a profile from a stale tab might use the previous filter context. Acceptable for now.
+- **Enrichment writes BOTH a lead patch AND a company patch in one transaction**, but as two `store.update` calls so each gets its own audit entry. The user-facing "Apply N changes" counts every accepted field, regardless of which table it lives on.
+- **`j`/`k` deliberately doesn't loop**. At the end of the list, "j" does nothing rather than wrapping to the start — Linear's behavior, and avoids the "I went past the end and now I'm somewhere weird" surprise.
+- **`Esc` on the profile returns to /leads** rather than to wherever you came from. Simpler and predictable.
+
+### Build state
+- typecheck 0 errors, lint clean, `npm run build` 12 routes (added `/activity`).
+- `/activity` 5.12 kB, `/leads/[id]` 14 kB (+2 kB for enrichment modal + cursor + activity card).
+
+### Live verification
+- All 6 hot paths return HTTP 200 from the production alias: `/activity`, `/leads`, `/leads/lead_1`, `/tasks`, `/imports`. `/` 307→/leads as designed.
+- Auto-deploy from `git push` succeeded. Deploy ID `dpl_...fzj93ztb2`.
+
+### What's still open
+- The bulk-actions bar still doesn't have "bulk enrich" — could be a v0.2 add (run mock provider on N leads, show aggregate diff).
+- Enrichment doesn't yet support "enrichment_jobs" persistence (the schema field exists but no UI lists past jobs). For mock it doesn't matter; when a real provider is wired, jobs should be persisted with cost tallies for the budget panel in Settings.
+- Activity page doesn't have a "lead=" query param yet to filter to a single lead. The per-lead profile card covers that today, but a deep-linkable filter would be nicer.
+- `j`/`k` from inbox rows isn't wired — only on the profile. Adding to the inbox would need a "focused row" concept.
