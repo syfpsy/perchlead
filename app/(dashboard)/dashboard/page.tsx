@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { Button } from "@heroui/react";
 import { ArrowUpRight, Inbox, Sparkles, Upload } from "lucide-react";
+import clsx from "clsx";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { useSnapshot } from "@/lib/store/use-snapshot";
@@ -13,6 +14,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatRelative } from "@/lib/utils/format";
+import type { LeadStatus } from "@/types";
 
 export default function DashboardPage() {
   const snapshot = useSnapshot();
@@ -25,6 +27,21 @@ export default function DashboardPage() {
     (r) => r.lead.status === "contacted" || r.lead.status === "replied",
   ).length;
   const suppressed = rows.filter((r) => r.lead.is_suppressed).length;
+
+  // Pipeline funnel counts — ordered to show the journey.
+  const FUNNEL_STAGES: Array<{ status: LeadStatus; label: string; color: string; bgBar: string }> = [
+    { status: "new",        label: "New",        color: "text-ink-700",     bgBar: "bg-ink-300"       },
+    { status: "qualified",  label: "Qualified",  color: "text-emerald-700", bgBar: "bg-emerald-400"   },
+    { status: "contacted",  label: "Contacted",  color: "text-blue-700",    bgBar: "bg-blue-400"      },
+    { status: "replied",    label: "Replied",    color: "text-violet-700",  bgBar: "bg-violet-400"    },
+    { status: "converted",  label: "Converted",  color: "text-green-700",   bgBar: "bg-green-500"     },
+    { status: "rejected",   label: "Rejected",   color: "text-zinc-600",    bgBar: "bg-zinc-300"      },
+  ];
+  const funnelCounts = FUNNEL_STAGES.map((s) => ({
+    ...s,
+    count: rows.filter((r) => r.lead.status === s.status).length,
+  }));
+  const funnelMax = Math.max(...funnelCounts.map((s) => s.count), 1);
 
   const sourceCounts = new Map<string, number>();
   for (const r of rows) {
@@ -89,6 +106,82 @@ export default function DashboardPage() {
           href="/leads?view=stale"
         />
       </section>
+
+      {/* Pipeline funnel */}
+      {total > 0 && (
+        <section className="rounded-2xl border border-soft surface-panel p-5 shadow-soft">
+          <header className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-ink-900">Pipeline</h3>
+              <p className="text-xs text-ink-500">
+                Conversion through each stage. Tap a row to filter the inbox.
+              </p>
+            </div>
+            <span className="rounded-full bg-ink-100 px-2.5 py-1 text-[11px] font-medium text-ink-600 tabular-nums">
+              {total} total
+            </span>
+          </header>
+          <div className="space-y-2.5">
+            {funnelCounts.map((stage, idx) => {
+              const pctOfTotal = total > 0 ? Math.round((stage.count / total) * 100) : 0;
+              const prev = funnelCounts[idx - 1];
+              const convFromPrev = prev && prev.count > 0
+                ? Math.round((stage.count / prev.count) * 100)
+                : null;
+              const barPct = funnelMax > 0 ? (stage.count / funnelMax) * 100 : 0;
+              // Map stage to the inbox tab key that closest represents it.
+              const inboxView =
+                stage.status === "new" ? "new"
+                : stage.status === "qualified" ? "qualified"
+                : stage.status === "contacted" || stage.status === "replied" ? "needs_followup"
+                : "all";
+              return (
+                <Link
+                  key={stage.status}
+                  href={`/leads?view=${inboxView}`}
+                  className="group flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-ink-50"
+                >
+                  <span className={clsx("w-20 shrink-0 text-xs font-medium", stage.color)}>
+                    {stage.label}
+                  </span>
+                  <div className="flex-1">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-ink-100">
+                      <div
+                        className={clsx("h-full rounded-full transition-all", stage.bgBar)}
+                        style={{ width: `${barPct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-ink-800">
+                    {stage.count}
+                  </span>
+                  <span className="w-14 shrink-0 text-right text-[11px] tabular-nums text-ink-400">
+                    {pctOfTotal}%
+                  </span>
+                  {convFromPrev !== null && (
+                    <span
+                      className={clsx(
+                        "w-20 shrink-0 text-right text-[11px] tabular-nums",
+                        convFromPrev >= 50 ? "text-emerald-600" : convFromPrev >= 25 ? "text-amber-600" : "text-red-500",
+                      )}
+                    >
+                      {convFromPrev}% from prev
+                    </span>
+                  )}
+                  {convFromPrev === null && (
+                    <span className="w-20 shrink-0" />
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+          {suppressed > 0 && (
+            <p className="mt-3 border-t border-soft pt-2 text-[11px] text-ink-400">
+              {suppressed} lead{suppressed === 1 ? "" : "s"} suppressed (Do Not Contact) — excluded above.
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section className="space-y-3 rounded-2xl border border-soft surface-panel p-5 shadow-soft lg:col-span-2">

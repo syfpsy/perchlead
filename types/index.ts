@@ -255,6 +255,19 @@ export type ColumnMapping = Partial<{
   notes: string;
 }>;
 
+export interface EmailTemplate {
+  id: ID;
+  label: string;
+  description: string;
+  subject: string;
+  body: string;
+  /** Hint shown in the draft modal describing ideal use cases. */
+  recommendedFor?: string;
+  /** Populated for custom templates stored in the snapshot; absent for built-ins. */
+  created_at?: ISODate;
+  updated_at?: ISODate;
+}
+
 // Top-level shape of the in-memory data store. Mirrors the Neon schema.
 export interface DataSnapshot {
   schema_version: 1;
@@ -273,6 +286,8 @@ export interface DataSnapshot {
   audit_logs: AuditLog[];
   imports: ImportRecord[];
   import_rows: ImportRow[];
+  /** Custom email templates. Merged with the built-in TEMPLATES in the draft modal. */
+  email_templates?: EmailTemplate[];
 }
 
 // Aggregated row type the inbox table renders.

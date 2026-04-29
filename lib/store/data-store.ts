@@ -41,6 +41,7 @@ function emptySnapshot(): DataSnapshot {
     audit_logs: [],
     imports: [],
     import_rows: [],
+    email_templates: [],
   };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Input,
@@ -13,7 +13,7 @@ import {
   Tabs,
   Textarea,
 } from "@heroui/react";
-import { Database, Plus, RefreshCw, ShieldOff, Tags as TagsIcon, Trash2 } from "lucide-react";
+import { Copy, Database, FileText, Pencil, Plus, RefreshCw, ShieldOff, Tags as TagsIcon, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { useSnapshot } from "@/lib/store/use-snapshot";
@@ -21,6 +21,8 @@ import { store } from "@/lib/store/data-store";
 import { nid, nowIso } from "@/lib/utils/id";
 import { useToast } from "@/components/ui/toast";
 import { buildSuppression } from "@/lib/services/compliance-service";
+import { TEMPLATES } from "@/lib/services/email-template-service";
+import type { EmailTemplate } from "@/types";
 import { extractDomain } from "@/lib/utils/string";
 import { formatRelative } from "@/lib/utils/format";
 
@@ -52,6 +54,9 @@ export default function SettingsPage() {
         </Tab>
         <Tab key="compliance" title="Compliance">
           <CompliancePanel />
+        </Tab>
+        <Tab key="templates" title="Templates">
+          <TemplatesPanel />
         </Tab>
         <Tab key="data" title="Data & Neon">
           <DataPanel />
@@ -365,6 +370,292 @@ function CompliancePanel() {
         )}
       </ul>
     </Section>
+  );
+}
+
+// ── Shared input classNames used in the template form modal ────────────────
+const tmplFieldCn = {
+  inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+  input: "text-sm text-ink-900",
+} as const;
+
+function TemplatesPanel() {
+  const snapshot = useSnapshot();
+  const toast = useToast();
+  // null = closed, {} = create new, EmailTemplate = edit existing
+  const [editing, setEditing] = useState<Partial<EmailTemplate> | null>(null);
+
+  const customTemplates = snapshot.email_templates ?? [];
+
+  function save(data: {
+    label: string;
+    description: string;
+    subject: string;
+    body: string;
+  }) {
+    const now = nowIso();
+    if (editing?.id && customTemplates.some((t) => t.id === editing.id)) {
+      // Update an existing custom template.
+      store.update((s) => {
+        s.email_templates = (s.email_templates ?? []).map((t) =>
+          t.id === editing.id ? { ...t, ...data, updated_at: now } : t,
+        );
+      });
+      toast.push({ tone: "success", title: "Template updated" });
+    } else {
+      // Create new (or save a clone of a built-in).
+      store.update((s) => {
+        if (!s.email_templates) s.email_templates = [];
+        s.email_templates.push({
+          id: nid("tpl"),
+          ...data,
+          created_at: now,
+          updated_at: now,
+        });
+      });
+      toast.push({ tone: "success", title: "Template saved" });
+    }
+    setEditing(null);
+  }
+
+  function remove(id: string) {
+    if (!window.confirm("Delete this template?")) return;
+    store.update((s) => {
+      s.email_templates = (s.email_templates ?? []).filter((t) => t.id !== id);
+    });
+    toast.push({ tone: "info", title: "Template deleted" });
+  }
+
+  return (
+    <Section
+      title="Email templates"
+      description="Customise templates used in the Draft Email panel. Built-ins are read-only — clone one to customise it."
+      action={
+        <Button
+          color="primary"
+          radius="lg"
+          startContent={<Plus className="h-4 w-4" />}
+          onPress={() => setEditing({})}
+        >
+          New template
+        </Button>
+      }
+    >
+      {/* Built-in templates — read only */}
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+          Built-in
+        </p>
+        <ul className="space-y-2">
+          {TEMPLATES.map((t) => (
+            <li
+              key={t.id}
+              className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-white px-3 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+                  <p className="text-sm font-semibold text-ink-900">{t.label}</p>
+                </div>
+                <p className="mt-0.5 text-xs text-ink-500">{t.description}</p>
+                <p className="mt-0.5 truncate font-mono text-[11px] text-ink-400">{t.subject}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="light"
+                radius="lg"
+                startContent={<Copy className="h-3.5 w-3.5" />}
+                onPress={() => setEditing({ ...t, id: undefined })}
+              >
+                Clone
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Custom templates */}
+      {customTemplates.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
+            Custom
+          </p>
+          <ul className="space-y-2">
+            {customTemplates.map((t) => (
+              <li
+                key={t.id}
+                className="flex items-start justify-between gap-3 rounded-xl border border-soft bg-white px-3 py-2.5"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5 shrink-0 text-primary-500" />
+                    <p className="text-sm font-semibold text-ink-900">{t.label}</p>
+                  </div>
+                  <p className="mt-0.5 text-xs text-ink-500">{t.description}</p>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-ink-400">{t.subject}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    onClick={() => setEditing(t)}
+                    className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+                    aria-label={`Edit ${t.label}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => remove(t.id)}
+                    className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-red-600"
+                    aria-label={`Delete ${t.label}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {customTemplates.length === 0 && (
+        <p className="mt-2 text-xs text-ink-500">
+          No custom templates yet. Clone a built-in or create one from scratch.
+        </p>
+      )}
+
+      <TemplateModal
+        initial={editing}
+        onSave={save}
+        onClose={() => setEditing(null)}
+      />
+    </Section>
+  );
+}
+
+function TemplateModal({
+  initial,
+  onSave,
+  onClose,
+}: {
+  initial: Partial<EmailTemplate> | null;
+  onSave: (data: {
+    label: string;
+    description: string;
+    subject: string;
+    body: string;
+  }) => void;
+  onClose: () => void;
+}) {
+  const [label, setLabel] = useState("");
+  const [description, setDescription] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+
+  // Sync fields whenever the modal opens or the target changes.
+  useEffect(() => {
+    if (initial !== null) {
+      setLabel(initial.label ?? "");
+      setDescription(initial.description ?? "");
+      setSubject(initial.subject ?? "");
+      setBody(initial.body ?? "");
+    }
+  }, [initial]);
+
+  const isEditing = !!initial?.id;
+  const canSave = label.trim() && subject.trim() && body.trim();
+
+  function submit() {
+    if (!canSave) return;
+    onSave({
+      label: label.trim(),
+      description: description.trim(),
+      subject: subject.trim(),
+      body: body.trim(),
+    });
+  }
+
+  return (
+    <Modal
+      isOpen={initial !== null}
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      size="xl"
+      placement="center"
+      backdrop="blur"
+      classNames={{ base: "rounded-3xl" }}
+    >
+      <ModalContent>
+        <ModalHeader className="flex flex-col gap-0.5">
+          <h3 className="text-base font-semibold text-ink-900">
+            {isEditing ? "Edit template" : "New template"}
+          </h3>
+          <p className="text-[11px] text-ink-500">
+            Variables:{" "}
+            {["first_name", "company", "product_name", "product_url", "sender_name"].map(
+              (v) => (
+                <code
+                  key={v}
+                  className="mr-1 rounded bg-ink-100 px-1 py-0.5 text-[10px] font-mono"
+                >
+                  {`{{${v}}}`}
+                </code>
+              ),
+            )}
+          </p>
+        </ModalHeader>
+        <ModalBody className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Input
+              label="Label"
+              value={label}
+              onValueChange={setLabel}
+              isRequired
+              variant="bordered"
+              classNames={tmplFieldCn}
+              placeholder="e.g. Cold intro"
+            />
+            <Input
+              label="Description"
+              value={description}
+              onValueChange={setDescription}
+              variant="bordered"
+              classNames={tmplFieldCn}
+              placeholder="When to use this"
+            />
+          </div>
+          <Input
+            label="Subject"
+            value={subject}
+            onValueChange={setSubject}
+            isRequired
+            variant="bordered"
+            classNames={tmplFieldCn}
+            placeholder="e.g. Quick hello, {{first_name}}"
+          />
+          <Textarea
+            label="Body"
+            value={body}
+            onValueChange={setBody}
+            isRequired
+            variant="bordered"
+            minRows={6}
+            maxRows={14}
+            placeholder={`Hi {{first_name}},\n\n…\n\n— {{sender_name}}`}
+            classNames={{
+              inputWrapper:
+                "border-soft bg-white shadow-none data-[hover=true]:border-firm font-mono",
+              input: "text-sm font-mono leading-relaxed",
+            }}
+          />
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button color="primary" isDisabled={!canSave} onPress={submit}>
+            {isEditing ? "Save changes" : "Create template"}
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 }
 

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import clsx from "clsx";
-import { ShieldOff } from "lucide-react";
+import { Clock, ShieldOff } from "lucide-react";
 import { motion } from "framer-motion";
 import type { LeadRow } from "@/types";
 import { statusLabel } from "@/components/ui/status-chip";
 import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { setLeadStatus } from "@/lib/services/lead-service";
+import { leadStaleness } from "@/lib/services/staleness-service";
 import { useToast } from "@/components/ui/toast";
 
 // Pipeline columns shown in the board. "cleaned" and "enriched" funnel into
@@ -186,6 +187,21 @@ function BoardCard({
             <ScoreBadge score={lead.score} reason={lead.score_reason} size="sm" />
           </div>
         </div>
+
+        {/* Staleness indicator */}
+        {(() => {
+          const stale = leadStaleness(row);
+          if (!stale.isStale) return null;
+          return (
+            <p
+              className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200"
+              title={stale.reason ?? `${stale.daysSince}d since last activity`}
+            >
+              <Clock className="h-2.5 w-2.5" />
+              {stale.daysSince}d idle
+            </p>
+          );
+        })()}
 
         {/* Top product interest */}
         {topInterest && (

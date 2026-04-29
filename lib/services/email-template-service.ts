@@ -2,17 +2,10 @@
 // Templates ship as a static set today; future versions will store them in
 // the DB per workspace and surface a Settings → Templates editor.
 
-import type { Company, Lead, LeadProductInterest, Product } from "@/types";
+import type { Company, EmailTemplate, Lead, LeadProductInterest, Product } from "@/types";
 
-export interface EmailTemplate {
-  id: string;
-  label: string;
-  description: string;
-  subject: string;
-  body: string;
-  /** Hint when no product interest matches. */
-  recommendedFor?: string;
-}
+// Re-export so existing imports from this module continue to work.
+export type { EmailTemplate };
 
 /**
  * Variables a template can reference. Keep this stable — adding a new var is

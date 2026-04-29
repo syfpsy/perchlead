@@ -24,6 +24,7 @@ import {
 } from "@/lib/services/email-template-service";
 import { addInteraction, setLeadStatus } from "@/lib/services/lead-service";
 import { useToast } from "@/components/ui/toast";
+import { useSnapshot } from "@/lib/store/use-snapshot";
 
 export function EmailDraftModal({
   open,
@@ -39,22 +40,28 @@ export function EmailDraftModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const toast = useToast();
+  const snapshot = useSnapshot();
+  // Merge built-in templates with any custom ones the user has saved in Settings.
+  const allTemplates = useMemo(
+    () => [...TEMPLATES, ...(snapshot.email_templates ?? [])],
+    [snapshot.email_templates],
+  );
   const [templateId, setTemplateId] = useState<string>(TEMPLATES[0]!.id);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
 
   // Re-render the template whenever the picked template or the lead changes.
   useEffect(() => {
-    const template = TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0]!;
+    const template = allTemplates.find((t) => t.id === templateId) ?? allTemplates[0]!;
     const vars = buildVarsForLead({ lead, company, topInterest });
     const out = renderTemplate(template, vars);
     setSubject(out.subject);
     setBody(out.body);
-  }, [templateId, lead, company, topInterest]);
+  }, [allTemplates, templateId, lead, company, topInterest]);
 
   const template: EmailTemplate = useMemo(
-    () => TEMPLATES.find((t) => t.id === templateId) ?? TEMPLATES[0]!,
-    [templateId],
+    () => allTemplates.find((t) => t.id === templateId) ?? allTemplates[0]!,
+    [allTemplates, templateId],
   );
 
   const mailtoHref = useMemo(() => {
@@ -139,7 +146,7 @@ export function EmailDraftModal({
               cursor: "shadow-soft",
             }}
           >
-            {TEMPLATES.map((t) => (
+            {allTemplates.map((t) => (
               <Tab key={t.id} title={t.label} />
             ))}
           </Tabs>

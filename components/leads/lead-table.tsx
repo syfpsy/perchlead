@@ -3,12 +3,13 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { Tooltip } from "@heroui/react";
-import { ArrowUpRight, ShieldOff, Star, Tag as TagIcon } from "lucide-react";
+import { ArrowUpRight, Clock, ShieldOff, Star, Tag as TagIcon } from "lucide-react";
 import type { LeadRow } from "@/types";
 import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatRelative } from "@/lib/utils/format";
+import { leadStaleness } from "@/lib/services/staleness-service";
 
 export type Density = "comfortable" | "compact";
 
@@ -150,7 +151,25 @@ export function LeadTable({
                     )}
                   </Td>
                   <Td>
-                    <StatusChip status={lead.status} />
+                    {(() => {
+                      const stale = leadStaleness(row);
+                      return (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <StatusChip status={lead.status} />
+                          {stale.isStale && (
+                            <Tooltip
+                              content={stale.reason ?? `${stale.daysSince}d since last activity`}
+                              placement="top"
+                            >
+                              <span className="inline-flex cursor-default items-center gap-0.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">
+                                <Clock className="h-2.5 w-2.5" />
+                                {stale.daysSince}d
+                              </span>
+                            </Tooltip>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </Td>
                   <Td className="text-right">
                     <ScoreBadge score={lead.score} reason={lead.score_reason} />
