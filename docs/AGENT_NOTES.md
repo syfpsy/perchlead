@@ -555,3 +555,64 @@ User ran `/audit` then "fix all". Systematic sweep of 27 issues across accessibi
 - Board view still uses `title` attribute for staleness reason on mobile (no hover). Tap-to-expand or a Tooltip would close the gap.
 - DnD on the board still deferred (`@dnd-kit/core` integration).
 - `prefers-reduced-motion` still not guarded in Framer Motion stagger animations on board and activity rows (those use `transition` props, not `animate`, so the CSS media query doesn't apply — need explicit `shouldReduceMotion` check).
+
+## 2026-04-29 — Dark mode bg-white systemic fix
+
+User: "still looking terrible" after the audit fixes. Root cause: every `bg-white` override in form inputs, modals, buttons, and cards was fighting HeroUI's own dark theme. Added a `panel` Tailwind color alias (`rgb(var(--color-bg-panel))`) that auto-adapts. Replaced every surface `bg-white` with `bg-panel` across 19 files (~60 replacements). Transparency effects (`bg-white/40`, `/50`, `/70`) preserved as-is. `<kbd>` elements get `dark:bg-ink-800`. Build: 0 errors, 12 routes.
+
+## 2026-04-29 — HeroUI 3 Pro migration
+
+User: "make sure we use heroui 3 pro". User provided HEROUI_AUTH_TOKEN (`4cf24f59...`) and a custom HeroUI Pro theme CSS (green-tinted neutrals, oklch color space, 0.25rem border radius, Instrument Sans font).
+
+### Stack after migration
+| | Before | After |
+|---|---|---|
+| React | 18.3 | 19.2.5 |
+| Next.js | 14.2.18 | 15.5.15 |
+| @heroui/react | 2.6.14 | 3.0.3 |
+| @heroui-pro/react | dormant | 1.0.0-beta.2 active |
+| Tailwind | 3.4 | 4.2.4 |
+| Animation | framer-motion 11 | motion 12 |
+
+### What landed
+
+**Stack upgrade** — React 19, Next 15, HeroUI v3, Tailwind 4, motion (all peers installed: recharts, react-aria-components, motion, embla-carousel, react-resizable-panels, @number-flow/react, tailwind-merge/variants v3).
+
+**User theme applied** — `app/globals.css` rewritten with Tailwind 4 syntax (`@import "tailwindcss"`, `@import "@heroui/styles"`, `@import "@heroui-pro/react/css"`), followed by the user's HeroUI Pro theme CSS block (green-tinted oklch tokens: `--accent oklch(81.93% 0.1197 155.25)`, `--radius: 0.25rem`, dark background `oklch(12% 0.0015 155.25)`). Custom `@theme` block preserves ink palette, shadows, tracking-tightish.
+
+**Font change** — `Instrument_Sans` (400–700) replaces Instrument Serif + Plus Jakarta Sans. CSS var `--font-instrument-sans` maps to Pro theme's `--font-sans`.
+
+**`tailwind.config.ts` deleted** — Tailwind 4 is CSS-first; all tokens live in `@theme {}` blocks in globals.css. PostCSS config switched to `@tailwindcss/postcss`.
+
+**Pro AppLayout + Sidebar shell** — `app/(dashboard)/layout.tsx` now uses `AppLayout` from `@heroui-pro/react` with `sidebar={<AppSidebar />}`, `navbar={<Topbar />}`, `sidebarCollapsible="icon"`. `components/layout/sidebar.tsx` completely rewritten using the Sidebar compound (`Sidebar.Header`, `Sidebar.Content`, `Sidebar.Group`, `Sidebar.Menu`, `Sidebar.MenuItem`, `Sidebar.MenuIcon`, `Sidebar.MenuLabel`, `Sidebar.MenuChip`, `Sidebar.Footer`). `components/layout/mobile-nav.tsx` **deleted** — AppLayout handles mobile drawer.
+
+**HeroUI provider** — v3 has no `HeroUIProvider`. Uses `RouterProvider` from `react-aria-components` instead. Dark mode flash script updated to also set `data-theme="dark|light"` attribute (Pro theme uses both `.dark` and `[data-theme="dark"]`).
+
+**v2 → v3 compatibility shim** (`lib/heroui-compat.tsx`, ~870 lines) — Because HeroUI v3 completely changed many component APIs (Button `color`/`variant` merge, Modal compound hierarchy, Input slot removal, Select `selectedKeys` type, Tab `title`→children, etc.), a shim re-exports all affected components with v2-compatible prop signatures that translate to v3 internally. All 25 existing component/page files import from `@/lib/heroui-compat` instead of `@heroui/react`. New code should import from `@heroui/react` or `@heroui-pro/react` directly. The shim is the migration path — remove components from it one by one as pages are upgraded to v3 native API.
+
+Key v3 API facts learned (for future reference):
+- `Button`: no `color` — uses `variant` ("primary"/"secondary"/"tertiary"/"outline"/"ghost"/"danger"); `isLoading` → `isPending`; no `radius` prop
+- `Modal`: compound hierarchy `Modal.Backdrop > Modal.Container > Modal.Dialog > Modal.Header/Body/Footer`
+- `Input`: `variant` is now "primary"/"secondary"; no `classNames` slots; use `TextField` for labeled + validated inputs
+- `Select`: `selectedKey` (singular) not `selectedKeys`; `onSelectionChange(key: Key)` not a Set
+- `Tabs`: children are tab panels; no `title` prop on `Tab`
+- `Tooltip`: compound `Tooltip.Trigger`/`Tooltip.Content` 
+- No `HeroUIProvider` export in v3
+
+**`framer-motion` → `motion/react`** in bulk-actions.tsx, lead-board.tsx, activity/page.tsx.
+
+**`.npmrc`** added to repo with `@heroui-pro:registry=https://registry.heroui.pro/` + `${HEROUI_AUTH_TOKEN}` reference (safe to commit — references env var, not the actual token). `HEROUI_AUTH_TOKEN` added to Vercel production environment.
+
+### Build state
+- `npx tsc --noEmit` — 0 errors
+- `npm run build` — 12 routes, Next.js 15.5.15, clean. Some `aria-label` warnings from react-aria-components primitives (non-blocking).
+
+### What's still open (natural next sprint)
+- Swap dashboard stat cards to `KPI` / `KPI.Group` Pro components
+- Swap lead inbox table to `DataGrid` Pro component  
+- Swap cmd+k palette to `Command` Pro component
+- Progressively migrate pages away from the compat shim to native v3 API
+- Remove individual v2 shim wrappers as each page is updated
+- Board view: evaluate `Kanban` Pro component to replace custom `lead-board.tsx`
+- Import stepper: evaluate `Stepper` Pro component
+- `aria-label` warnings on react-aria-components primitives (in modals, selects)
