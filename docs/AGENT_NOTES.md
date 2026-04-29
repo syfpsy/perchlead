@@ -466,3 +466,92 @@ User: "keep improving". Three compounding improvements that raise the analytic +
 - Template preview (render with sample data before saving) would catch `{{unfilled_var}}` mistakes early.
 - Board cards use a `title` attribute for the staleness reason — screen readers see it, but mobile users don't hover. A tap-to-expand detail card would cover that gap.
 - `prefers-reduced-motion` guard still missing from Framer stagger animations.
+
+## 2026-04-29 — Accessibility + design quality audit and fix sweep
+
+User ran `/audit` then "fix all". Systematic sweep of 27 issues across accessibility, design, performance, and dark mode. All fixed in an isolated worktree, built clean (`npm run build` → 12 routes, zero errors), merged to main.
+
+### What landed (21 files changed, 2 new files)
+
+**Fonts — swap Inter anti-pattern**
+- `app/layout.tsx`: load `Instrument_Serif` (display) + `Plus_Jakarta_Sans` (body) via `next/font/google`. CSS vars `--font-display` and `--font-sans` injected on `<html>`.
+- `tailwind.config.ts`: `fontFamily.sans` → `var(--font-sans)`, `fontFamily.display` → `var(--font-display)`. `fontFamily.mono` → native stack (removed Inter reference).
+- Selective `font-display` class applied to: `PageHeader` h1, `LeadCard` h2, `EmptyState` h2, stat numbers on Dashboard.
+
+**Dark mode — was a dead toggle**
+- `app/layout.tsx`: inline flash-prevention script (reads `perchlead.theme` + system preference, adds `.dark` before first paint to avoid flicker).
+- New `components/ui/dark-mode-toggle.tsx`: Sun/Moon button, reads initial state via `useEffect` to avoid SSR hydration mismatch, persists to `localStorage('perchlead.theme')`. Mounted in sidebar demo panel.
+- `components/ui/toast.tsx`: `bg-white` → `surface-panel` token.
+- `app/globals.css`: skeleton shimmer gradient fixed for dark mode; `@media (prefers-reduced-motion: reduce)` disables `animate-fade-in` and `skeleton` — this also closes the long-open prefers-reduced-motion gap.
+
+**Accessibility — `window.confirm()` eliminated**
+- New `components/ui/confirm-dialog.tsx`: HeroUI Modal-based replacement. Props: `open`, `title`, `description?`, `confirmLabel`, `cancelLabel`, `isDangerous`, `onConfirm`, `onCancel`. `isDangerous=true` shows `AlertTriangle` icon and uses `color="danger"` confirm button. Non-blocking, stylable, accessible.
+- All 8 `window.confirm()` callsites replaced with stateful `ConfirmDialog`:
+  - Settings: ProductsPanel remove, TagsPanel remove, DataPanel reset ('seed' | 'clear' | null), TemplatesPanel remove.
+  - Tasks page: task delete.
+  - Lead detail page (`/leads/[id]`): delete lead, merge lead, suppress lead.
+
+**Accessibility — status dropdown on lead detail**
+- Replaced custom `<div>` + boolean state + no-ARIA approach with HeroUI `Dropdown`/`DropdownMenu`/`DropdownItem`. Automatic keyboard navigation, `aria-expanded`, `aria-haspopup`, click-outside. Removed `statusOpen` useState.
+
+**Accessibility — Log activity interaction**
+- "Log activity" bare button → `Popover` + `Textarea`. Users now enter an actual note text before logging. Added `logNote` useState.
+
+**Accessibility — ARIA labels and focus rings**
+- `components/layout/sidebar.tsx`: `aria-label="Main navigation"` on `<nav>`; `focus-visible:ring-2` on all nav links.
+- `components/leads/lead-board.tsx`: `focus-visible:ring-2` on QuickMoveMenu status buttons.
+- `components/leads/bulk-actions.tsx`: `focus-visible:ring-2` on X close button; button heights `h-7` → `h-9` (touch target improvement, 28px → 36px).
+- `components/leads/profile-cards.tsx`: `focus-visible:ring-2` on tag-remove buttons.
+
+**Accessibility — heading hierarchy**
+- `components/leads/profile-cards.tsx`: `LeadCard` title `<h3>` → `<h2>` (lead detail page was jumping h1 → h3).
+- `components/ui/empty-state.tsx`: `<h3>` → `<h2>` (same skip pattern).
+
+**Accessibility — contrast**
+- `components/leads/lead-table.tsx`: "No company" and "—" text `text-ink-400` (#8b94a7, 3.1:1 fail) → `text-ink-500` (passes AA).
+
+**Design — EmptyState anti-pattern removed**
+- Removed large `h-12 w-12 rounded-2xl bg-primary-50` icon container (the "icon above heading" template pattern).
+- Replaced with subtle `h-px w-12 rounded-full bg-primary-200` accent line. Icon if passed renders as small inline element below description.
+
+**Design — Dashboard hero metrics**
+- Replaced 6 equal-weight stat cards with: 2 prominent "action" cards (Open tasks + Stale leads, amber warning when > 0) + 1 compact inline pipeline stats row (Total, New, Qualified, Follow-up). Varied visual weight; avoids the monotonous identical-card grid anti-pattern.
+
+**Design — Sidebar**
+- Removed `bg-gradient-to-br from-primary-500 to-primary-700` gradient logo (glassy/gradient anti-pattern).
+- Replaced with flat `bg-primary-600` "P" monogram. `font-display` on "Perchlead" wordmark.
+- Tagline `text-ink-400` (contrast fail) → `text-ink-500`.
+
+**Design — Topbar**
+- Added `dark:bg-ink-950/90` for dark mode.
+- Search kbd hint: plain text removed from placeholder → `endContent` `⌘K` badge inside the input.
+
+**Design — Mobile nav restructure**
+- Was missing routes (Activity, Lists, Finder, Settings). Now: 4 primary items (Dashboard, Leads, Tasks, Import) + "More" overlay showing Finder, Lists, Activity, Settings.
+- `aria-label="Mobile navigation"`, `aria-expanded` on More button.
+- Icon size `h-4 w-4` → `h-5 w-5`; nav items `py-2` → `py-3` for touch targets.
+
+**Performance — Command palette**
+- `LeadAffordance` no longer calls `useSnapshot()` internally (was triggering a store subscription per visible lead item). Parent now passes `leadData: { score, score_reason, is_suppressed }` as props.
+
+**Misc**
+- `components/leads/lead-table.tsx`: removed dead `compact?: boolean` from `Td` type declaration.
+- `components/layout/command-palette.tsx`: backdrop `.bg-black/40` now uses `supports-[backdrop-filter]:` prefix for graceful degradation on browsers without `backdrop-filter`.
+
+### Build state
+- `npx tsc --noEmit` — 0 errors.
+- `npm run build` — 12 routes, all green.
+- Merged from worktree `worktree-agent-a9b537e770b97cd61` via `--no-ff` merge commit.
+
+### Decisions
+- **`ConfirmDialog` over inline `window.confirm()`** — synchronous confirm blocks the browser event loop, is unstyled, and falls outside the focus tree. The pattern is now consistent across all destructive actions.
+- **Flash-prevention script is inline, not a component** — it must run before React hydration. An `<Script strategy="beforeInteractive">` in Next.js App Router adds overhead; the tiny inline script is the right tool.
+- **`text-ink-400` deprecated for body copy** — use `text-ink-500` as the minimum for paragraph / metadata text to meet WCAG AA. `text-ink-400` is acceptable only for placeholder / disabled text.
+- **`prefers-reduced-motion` now honoured for CSS animations** — Framer Motion respects it for `animate` by default; the CSS `animate-fade-in` and `skeleton` were the gap, now fixed in globals.
+
+### What's still open
+- Dark mode is functional but not polished — many `bg-white` surface instances in profile cards, modals, popovers still need `dark:bg-ink-900` / `surface-panel` tokens.
+- Touch targets: `h-9` (36px) is closer to the 44px ideal but still short. Full 44px targets would require layout changes in the bulk bar.
+- Board view still uses `title` attribute for staleness reason on mobile (no hover). Tap-to-expand or a Tooltip would close the gap.
+- DnD on the board still deferred (`@dnd-kit/core` integration).
+- `prefers-reduced-motion` still not guarded in Framer Motion stagger animations on board and activity rows (those use `transition` props, not `animate`, so the CSS media query doesn't apply — need explicit `shouldReduceMotion` check).
