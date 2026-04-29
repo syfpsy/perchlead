@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Input, Tab, Tabs } from "@heroui/react";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button, Input, Tab, Tabs } from "@heroui/react";
 import {
   ArrowUpRight,
   Download,
@@ -16,13 +17,16 @@ import {
   ShieldOff,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
+import { motion } from "framer-motion";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import {
+  activityForLead,
   buildActivityRows,
   filterActivity,
   type ActivityFilter,
@@ -30,6 +34,7 @@ import {
 } from "@/lib/services/activity-service";
 import type { AuditLog } from "@/types";
 import { formatRelative } from "@/lib/utils/format";
+import { Avatar } from "@/components/ui/avatar";
 
 type TabKey = "all" | "leads" | "imports" | "exports" | "compliance";
 
@@ -46,11 +51,28 @@ const TABS: Array<{ key: TabKey; label: string; filter: ActivityFilter }> = [
 ];
 
 export default function ActivityPage() {
+  return (
+    <Suspense fallback={null}>
+      <ActivityPageInner />
+    </Suspense>
+  );
+}
+
+function ActivityPageInner() {
   const snapshot = useSnapshot();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const leadId = searchParams.get("lead");
   const [tab, setTab] = useState<TabKey>("all");
   const [query, setQuery] = useState("");
 
-  const rows = useMemo(() => buildActivityRows(snapshot), [snapshot]);
+  const allRows = useMemo(() => buildActivityRows(snapshot), [snapshot]);
+  const rows = useMemo(
+    () => (leadId ? activityForLead(allRows, leadId) : allRows),
+    [allRows, leadId],
+  );
+
+  const focusedLead = leadId ? snapshot.leads.find((l) => l.id === leadId) : null;
 
   const tabFilter = useMemo(
     () => TABS.find((t) => t.key === tab)?.filter ?? {},
@@ -70,6 +92,39 @@ export default function ActivityPage() {
         title="Activity"
         description="Every status change, import, merge, suppress, export, and delete is logged here. The audit trail is your safety net for compliance reviews."
       />
+
+      {focusedLead && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-primary-200 bg-primary-50/40 px-4 py-2 shadow-soft">
+          <div className="flex items-center gap-2.5">
+            <Avatar name={focusedLead.name} size="sm" />
+            <div>
+              <p className="text-sm font-medium text-ink-900">
+                Filtered to <span className="font-semibold">{focusedLead.name}</span>
+              </p>
+              <p className="text-[11px] text-ink-500">
+                Showing every event tied to this lead.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/leads/${focusedLead.id}`}
+              className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-ink-700 ring-1 ring-soft hover:bg-ink-50"
+            >
+              Open profile
+            </Link>
+            <Button
+              size="sm"
+              variant="light"
+              radius="full"
+              startContent={<X className="h-3 w-3" />}
+              onPress={() => router.replace("/activity")}
+            >
+              Clear filter
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 rounded-2xl border border-soft surface-panel p-2 shadow-soft md:flex-row md:items-center">
         <Input
@@ -117,14 +172,24 @@ export default function ActivityPage() {
         />
       ) : (
         <ol className="space-y-5">
-          {grouped.map(({ day, rows }) => (
+          {grouped.map(({ day, rows }, dayIdx) => (
             <li key={day} className="space-y-1.5">
               <h3 className="px-1 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
                 {day}
               </h3>
               <ul className="overflow-hidden rounded-2xl border border-soft surface-panel shadow-soft">
-                {rows.map((row) => (
-                  <ActivityItem key={row.log.id} row={row} />
+                {rows.map((row, idx) => (
+                  <motion.div
+                    key={row.log.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.18,
+                      delay: Math.min(0.04 * (dayIdx === 0 ? idx : 0), 0.3),
+                    }}
+                  >
+                    <ActivityItem row={row} />
+                  </motion.div>
                 ))}
               </ul>
             </li>

@@ -25,11 +25,18 @@ import {
   type SortKey,
 } from "@/lib/services/search-service";
 import {
+  addTagToLead,
   deleteLead,
+  removeTagFromLead,
+  setLeadProductInterest,
   setLeadStatus,
   suppressLead,
 } from "@/lib/services/lead-service";
-import { downloadCsv } from "@/lib/services/export-service";
+import {
+  EXPORT_PRESET_LIST,
+  downloadCsv,
+  type ExportPresetKey,
+} from "@/lib/services/export-service";
 import { useToast } from "@/components/ui/toast";
 
 import { PageHeader } from "@/components/ui/page-header";
@@ -190,6 +197,40 @@ function LeadsPageInner() {
       tone: "success",
       title: "Export started",
       description: "Suppressed leads were excluded for safety.",
+    });
+  };
+  const onBulkPresetExport = (presetKey: string) => {
+    if (!selectedRows.length) return;
+    const key = presetKey as ExportPresetKey;
+    const preset = EXPORT_PRESET_LIST.find((p) => p.key === key);
+    downloadCsv(selectedRows, { preset: key });
+    toast.push({
+      tone: "success",
+      title: `${preset?.label ?? "Preset"} export started`,
+      description: "Suppressed leads were excluded for safety.",
+    });
+  };
+  const onBulkTag = (tagId: string, mode: "add" | "remove") => {
+    selectedRows.forEach((r) =>
+      mode === "add" ? addTagToLead(r.lead.id, tagId) : removeTagFromLead(r.lead.id, tagId),
+    );
+    const tag = snapshot.tags.find((t) => t.id === tagId);
+    toast.push({
+      tone: mode === "add" ? "success" : "info",
+      title:
+        mode === "add"
+          ? `Tagged ${selectedRows.length} as “${tag?.name ?? "?"}”`
+          : `Removed “${tag?.name ?? "?"}” from ${selectedRows.length}`,
+    });
+  };
+  const onBulkInterest = (productId: string, level: "low" | "medium" | "high") => {
+    selectedRows.forEach((r) =>
+      setLeadProductInterest({ leadId: r.lead.id, productId, level }),
+    );
+    const product = snapshot.products.find((p) => p.id === productId);
+    toast.push({
+      tone: "success",
+      title: `${product?.name ?? "Product"} interest set to ${level} (${selectedRows.length})`,
     });
   };
 
@@ -420,6 +461,12 @@ function LeadsPageInner() {
         onSuppress={onBulkSuppress}
         onExport={onBulkExport}
         onDelete={onBulkDelete}
+        tags={snapshot.tags}
+        products={snapshot.products}
+        onToggleTag={onBulkTag}
+        onSetInterest={onBulkInterest}
+        exportPresets={EXPORT_PRESET_LIST.filter((p) => p.key !== "generic")}
+        onPresetExport={onBulkPresetExport}
       />
 
       <LeadCreateModal open={createOpen} onOpenChange={setCreateOpen} />

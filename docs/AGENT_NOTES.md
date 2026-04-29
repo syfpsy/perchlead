@@ -320,3 +320,45 @@ The dialog had several bugs that conspired to make submission feel broken:
 - Stale-lead service doesn't write a system interaction when something newly tips over the threshold — could be a daily cron job once we have a job runner.
 - Density doesn't have a sync-across-devices story; lives only in localStorage. Will move to a `user_preferences` table when Neon comes online.
 - Source detection rules are hard-coded; a future enhancement would let the user define new rules from a sample of their CSV.
+
+## 2026-04-29 — Bulk tag/interest · saved-list editing · export presets · email templates · activity deep-link · motion
+
+User: "keep improving". Picked six features that compound — three close real UX gaps, two add genuine product surface, one is polish.
+
+### What landed
+
+**1. Bulk tag + bulk product-interest in the actions bar.** Two new Popover-driven menus on the floating bulk bar — Tag (with `+ add` / `− remove` per tag) and Interest (per product, with `low` / `medium` / `high` segmented buttons). The bar now reads `count selected → status / tag / interest / suppress / export / delete`. Files touched: `components/leads/bulk-actions.tsx`, `app/(dashboard)/leads/page.tsx`.
+
+**2. Saved-list editing.** New `EditListModal` reuses `LeadFilterBar` for filter editing inside the modal — no duplicate filter UI to maintain. From `/lists`, each card now has a pencil button next to the trash; click it to edit name + filters in place, or delete from the same modal. Files: `components/leads/edit-list-modal.tsx`, `app/(dashboard)/lists/page.tsx`.
+
+**3. CSV export presets.** Added `Smartlead`, `Instantly`, `HubSpot Contacts` column shapes (plus the existing Generic) in `lib/services/export-service.ts`. Each preset is `{label, description, columns: ExportColumn[]}` so adding new ones is trivial — column extractors are pure functions over `LeadRow`. HubSpot maps our status enum to HubSpot's `Lifecycle Stage` automatically. The bulk bar's Export button is now a Popover ("Pick a format → Generic / Smartlead / Instantly / HubSpot Contacts") that calls `downloadCsv(rows, { preset })`. Suppressed leads are excluded from every preset.
+
+**4. Email template drafting on the profile.** New `Draft email` button (next to Enrich). Opens a modal with four templates (`warm_intro`, `post_purchase`, `fit_recommendation`, `soft_followup`), each with `{{variable}}` interpolation. Variables are derived from the lead (first_name, full_name, company, product_name, product_url, sender_name) — picks the highest-interest product automatically. Editable subject and body, "Copy" puts it on the clipboard, "Send via mail client" opens a properly-encoded `mailto:` link, logs an `email` interaction, and bumps the lead status from new/qualified/enriched → contacted. UnfilledHint surfaces any `{{vars}}` that didn't get substituted before send. Files: `lib/services/email-template-service.ts`, `components/leads/email-draft-modal.tsx`.
+
+**5. `/activity?lead=ID` deep-link filter.** Activity page is now Suspense-wrapped (already true for `/leads`). When `?lead=ID` is present it filters to that lead's events and shows a primary-tinted banner ("Filtered to Maya Pekar — Showing every event tied to this lead") with `Open profile` and `Clear filter` actions. The per-lead audit card on the profile and its overflow note both deep-link into this filtered view, so the path "what happened with this lead lately?" is one click in either direction.
+
+**6. Tasteful Framer Motion.** First real motion in the app:
+   - **Bulk actions bar** wrapped in `AnimatePresence` + `motion.div` with a spring (stiffness 360, damping 28). Slides up + fades + scales in on first selection; reverse on clear. No flicker, no layout shift.
+   - **Activity rows** get a tiny stagger (`0.04s × index`, capped at 300ms total) on the first day group only — feels alive on first paint, doesn't replay on every filter change.
+   - Skipped: HeroUI's Modal already animates, no need to layer Framer on top. No motion on inbox table rows — would replay too often as filters change.
+
+### Decisions
+- **Export presets are a typed registry**, not strings sprinkled in code. Adding a new preset is `EXPORT_PRESETS["new"] = { columns: [...] }`. The UI list (`EXPORT_PRESET_LIST`) is derived. Future-proof for a Settings → Export Presets editor that lets users define their own.
+- **Email templates ship as a static array today** but the rendering / variable layer is the same shape we'll need when they live in Postgres. `renderTemplate(template, vars)` is pure; `buildVarsForLead(lead, company, topInterest)` is the seam. Future Settings UI just replaces `TEMPLATES` with a fetch.
+- **Send via mail client logs `email` interaction + bumps status** but doesn't mark the email as actually sent — that's whatever happens in Apple Mail / Gmail / Superhuman after the link opens. Honest about what mailto can know.
+- **Activity?lead=ID filter** uses the existing `activityForLead` derivation — no new query path. Suspense-wraps so static prerender still works.
+- **Bulk tag UX is `+ add` / `− remove`** instead of a single toggle. With multiple selected leads, "toggle" is ambiguous when some have the tag and some don't. Explicit add/remove avoids the surprise.
+- **Framer Motion only** where there's a real interaction to animate. AnimatePresence on the bulk bar is genuinely necessary (mount/unmount); activity stagger is a nice touch on first paint. Inbox rows would re-run too often — left them on CSS `animate-fade-in`.
+
+### Build state
+- typecheck 0 errors, lint clean, `npm run build` 13 routes.
+- `/leads` 39.6 kB (+2.4 kB for bulk menus + presets pull-in).
+- `/leads/[id]` 18.8 kB (+4.8 kB — the email draft modal pulls in the templates + the framer-motion shared chunk).
+- `/activity` 5.42 kB (+0.3 kB for the filter banner + stagger).
+
+### What's still open
+- Email templates can't yet be added/edited from Settings — would unlock per-workspace personality.
+- The bulk-export menu doesn't preview row counts per preset (e.g., "Smartlead — 12 leads with email"). Easy add.
+- No "view editing UX" yet for the inbox tabs themselves (you can edit a saved list from /lists, but the inbox doesn't have an inline edit affordance for the active tab). A small pencil next to the active tab would close that loop.
+- Score badge could use a tasteful number tick-up animation. Skipped this round to keep motion focused.
+- `prefers-reduced-motion` not yet honored — Framer Motion respects it by default for `animate`, but I should add explicit guards before adding more motion.

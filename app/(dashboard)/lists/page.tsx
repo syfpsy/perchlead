@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Button, Input } from "@heroui/react";
-import { Layers3, Plus, Trash2 } from "lucide-react";
+import { Layers3, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -12,6 +12,8 @@ import { applyFilters, buildLeadRows } from "@/lib/services/search-service";
 import { store } from "@/lib/store/data-store";
 import { nid, nowIso } from "@/lib/utils/id";
 import { useToast } from "@/components/ui/toast";
+import { EditListModal } from "@/components/leads/edit-list-modal";
+import type { SavedList } from "@/types";
 
 export default function ListsPage() {
   const snapshot = useSnapshot();
@@ -19,6 +21,7 @@ export default function ListsPage() {
   const rows = useMemo(() => buildLeadRows(snapshot), [snapshot]);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [editing, setEditing] = useState<SavedList | null>(null);
 
   function createList() {
     if (!name.trim()) return;
@@ -102,10 +105,10 @@ export default function ListsPage() {
                 key={list.id}
                 className="rounded-2xl border border-soft surface-panel p-4 shadow-soft"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <Link
-                      href={`/leads?listId=${list.id}`}
+                      href={`/leads?view=${list.id}`}
                       className="text-sm font-semibold text-ink-900 hover:underline"
                     >
                       {list.name}
@@ -114,13 +117,22 @@ export default function ListsPage() {
                       {matched.length} lead{matched.length === 1 ? "" : "s"}
                     </p>
                   </div>
-                  <button
-                    aria-label="Delete list"
-                    onClick={() => deleteList(list.id)}
-                    className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-red-600"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      aria-label="Edit list"
+                      onClick={() => setEditing(list)}
+                      className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-primary-700"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      aria-label="Delete list"
+                      onClick={() => deleteList(list.id)}
+                      className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {Object.entries(list.filters_json).flatMap(([k, v]) => {
@@ -154,6 +166,15 @@ export default function ListsPage() {
           })}
         </ul>
       )}
+
+      <EditListModal
+        open={!!editing}
+        list={editing}
+        tags={snapshot.tags}
+        products={snapshot.products}
+        sources={snapshot.sources}
+        onOpenChange={(o) => !o && setEditing(null)}
+      />
     </div>
   );
 }

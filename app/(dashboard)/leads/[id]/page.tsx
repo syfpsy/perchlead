@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { Button, Tooltip } from "@heroui/react";
-import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Mail, Sparkles, Trash2 } from "lucide-react";
 
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import {
@@ -43,6 +43,7 @@ import { DuplicateWarning } from "@/components/leads/duplicate-warning";
 import { NotesCard } from "@/components/leads/notes-card";
 import { TasksCard } from "@/components/leads/tasks-card";
 import { EnrichmentModal } from "@/components/leads/enrichment-modal";
+import { EmailDraftModal } from "@/components/leads/email-draft-modal";
 import type { LeadStatus } from "@/types";
 
 export default function LeadProfilePage() {
@@ -52,6 +53,7 @@ export default function LeadProfilePage() {
   const toast = useToast();
   const [statusOpen, setStatusOpen] = useState(false);
   const [enrichOpen, setEnrichOpen] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
   const [cursor, setCursor] = useState<InboxCursor | null>(null);
 
   useEffect(() => {
@@ -259,6 +261,20 @@ export default function LeadProfilePage() {
               Enrich
             </Button>
           </Tooltip>
+          <Tooltip
+            content={lead.email ? "Draft an email — opens your mail client" : "No email on file"}
+            placement="top"
+          >
+            <Button
+              radius="lg"
+              color="primary"
+              startContent={<Mail className="h-4 w-4" />}
+              onPress={() => setDraftOpen(true)}
+              isDisabled={!lead.email}
+            >
+              Draft email
+            </Button>
+          </Tooltip>
           <Button
             radius="lg"
             variant="bordered"
@@ -372,6 +388,13 @@ export default function LeadProfilePage() {
         company={company}
         onOpenChange={setEnrichOpen}
       />
+      <EmailDraftModal
+        open={draftOpen}
+        lead={lead}
+        company={company}
+        topInterest={topInterest}
+        onOpenChange={setDraftOpen}
+      />
     </div>
   );
 }
@@ -389,10 +412,10 @@ function LeadActivityCard({ leadId }: { leadId: string }) {
       <header className="flex items-center justify-between border-b border-soft px-5 py-3">
         <h3 className="text-sm font-semibold tracking-tightish text-ink-800">Audit trail</h3>
         <Link
-          href="/activity"
+          href={`/activity?lead=${leadId}`}
           className="rounded-full px-2 py-0.5 text-[11px] font-medium text-primary-700 hover:bg-primary-50"
         >
-          See all activity →
+          Open in Activity →
         </Link>
       </header>
       <ul className="divide-y divide-soft px-5">
@@ -421,7 +444,7 @@ function LeadActivityCard({ leadId }: { leadId: string }) {
       {rows.length > 8 && (
         <p className="border-t border-soft px-5 py-2 text-[11px] text-ink-400">
           {rows.length - 8} earlier event{rows.length - 8 === 1 ? "" : "s"} · view all in{" "}
-          <Link href="/activity" className="text-primary-700 hover:underline">
+          <Link href={`/activity?lead=${leadId}`} className="text-primary-700 hover:underline">
             Activity
           </Link>
           .
