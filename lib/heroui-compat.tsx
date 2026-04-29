@@ -152,11 +152,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 // =============================================================================
 
 export interface InputProps
-  extends Omit<InputRootProps, "variant" | "size"> {
+  extends Omit<InputRootProps, "variant" | "size" | "className"> {
   variant?: "bordered" | "flat" | "underlined" | "faded" | "primary" | "secondary";
   radius?: "none" | "sm" | "md" | "lg" | "full";
   /** v2 sizing — accepted but ignored by v3 (CSS handles it). */
   size?: "sm" | "md" | "lg" | number;
+  /** Override to plain string (InputRootProps types it as ClassNameOrFunction). */
+  className?: string;
   startContent?: React.ReactNode;
   endContent?: React.ReactNode;
   classNames?: { inputWrapper?: string; input?: string };
@@ -176,10 +178,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       startContent,
       endContent,
       classNames,
-      label: _label,
-      isRequired: _isRequired,
-      errorMessage: _errorMessage,
-      isInvalid: _isInvalid,
+      label,
+      isRequired,
+      errorMessage,
+      isInvalid,
       onValueChange,
       onChange,
       className,
@@ -195,35 +197,56 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           : undefined;
     const wrapperCls = classNames?.inputWrapper;
     const inputCls = classNames?.input;
-    if (startContent || endContent || wrapperCls) {
-      return (
-        <div className={["relative flex items-center", wrapperCls, className].filter(Boolean).join(" ")}>
-          {startContent && <span className="pointer-events-none absolute left-3">{startContent}</span>}
-          <HInput
-            ref={ref as React.Ref<HTMLInputElement>}
-            variant={v3variant}
-            className={[startContent ? "pl-9" : "", endContent ? "pr-9" : "", inputCls].filter(Boolean).join(" ")}
-            onChange={(e) => {
-              onChange?.(e);
-              onValueChange?.((e.target as HTMLInputElement).value);
-            }}
-            {...rest}
-          />
-          {endContent && <span className="absolute right-3">{endContent}</span>}
-        </div>
-      );
-    }
-    return (
+
+    // Build the inner field element — same wrapper div logic as before
+    const inner = (startContent || endContent || wrapperCls) ? (
+      <div className={["relative flex items-center", wrapperCls].filter(Boolean).join(" ")}>
+        {startContent && <span className="pointer-events-none absolute left-3 shrink-0">{startContent}</span>}
+        <HInput
+          ref={ref as React.Ref<HTMLInputElement>}
+          variant={v3variant}
+          className={[startContent ? "pl-9" : "", endContent ? "pr-9" : "", inputCls].filter(Boolean).join(" ")}
+          onChange={(e) => {
+            onChange?.(e);
+            onValueChange?.((e.target as HTMLInputElement).value);
+          }}
+          {...rest}
+        />
+        {endContent && <span className="absolute right-3 shrink-0">{endContent}</span>}
+      </div>
+    ) : (
       <HInput
         ref={ref as React.Ref<HTMLInputElement>}
         variant={v3variant}
-        className={[inputCls, className].filter(Boolean).join(" ")}
+        className={[inputCls].filter(Boolean).join(" ")}
         onChange={(e) => {
           onChange?.(e);
           onValueChange?.((e.target as HTMLInputElement).value);
         }}
         {...rest}
       />
+    );
+
+    // No label — same bare-field behaviour as before (for search inputs, topbar, etc.)
+    if (!label) {
+      if (className) {
+        return <div className={className}>{inner}</div>;
+      }
+      return inner;
+    }
+
+    // Labeled variant: stack label → field → optional error
+    return (
+      <div className={["flex flex-col gap-1.5", className].filter(Boolean).join(" ")}>
+        <label className="text-sm font-medium text-ink-700 dark:text-ink-300">
+          {label}
+          {isRequired && <span className="ml-0.5 text-danger">*</span>}
+        </label>
+        {inner}
+        {isInvalid && errorMessage && (
+          <p className="text-xs text-danger-600 dark:text-danger-400">{String(errorMessage)}</p>
+        )}
+      </div>
     );
   },
 );
@@ -266,10 +289,10 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       minRows,
       maxRows: _maxRows,
       rows,
-      label: _label,
-      isRequired: _isRequired,
-      errorMessage: _errorMessage,
-      isInvalid: _isInvalid,
+      label,
+      isRequired,
+      errorMessage,
+      isInvalid,
       ...rest
     },
     ref,
@@ -282,7 +305,8 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           : undefined;
     const inputCls = classNames?.input;
     const wrapperCls = classNames?.inputWrapper;
-    return (
+
+    const fieldEl = (
       <HTextArea
         ref={ref as React.Ref<HTMLTextAreaElement>}
         variant={v3variant}
@@ -294,6 +318,21 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         }}
         {...rest}
       />
+    );
+
+    if (!label) return fieldEl;
+
+    return (
+      <div className="flex flex-col gap-1.5">
+        <label className="text-sm font-medium text-ink-700 dark:text-ink-300">
+          {label}
+          {isRequired && <span className="ml-0.5 text-danger">*</span>}
+        </label>
+        {fieldEl}
+        {isInvalid && errorMessage && (
+          <p className="text-xs text-danger-600 dark:text-danger-400">{String(errorMessage)}</p>
+        )}
+      </div>
     );
   },
 );
@@ -428,7 +467,7 @@ export function Select<T extends object = object>({
   placeholder,
   startContent: _start,
   endContent: _end,
-  classNames: _cn,
+  classNames,
   className,
   size: _size,
   radius: _radius,
@@ -488,11 +527,13 @@ export function Select<T extends object = object>({
   } as unknown as SelectRootProps<T>;
 
   return (
-    <div className={["flex flex-col gap-1", className].filter(Boolean).join(" ")}>
-      {label && <span className="text-xs text-ink-600">{label}</span>}
+    <div className={["flex flex-col gap-1.5", className].filter(Boolean).join(" ")}>
+      {label && (
+        <label className="text-sm font-medium text-ink-700 dark:text-ink-300">{label}</label>
+      )}
       <HSelect<T> variant={v3variant} {...selectProps}>
-        <HSelect.Trigger>
-          <HSelect.Value />
+        <HSelect.Trigger className={classNames?.trigger}>
+          <HSelect.Value className={classNames?.value} />
           <HSelect.Indicator />
         </HSelect.Trigger>
         <HSelect.Popover>
@@ -574,10 +615,12 @@ export function Tabs({
   return (
     <HTabs
       variant={v3variant}
-      className={[classNames?.tabList, classNames?.base, className].filter(Boolean).join(" ")}
+      className={[classNames?.base, className].filter(Boolean).join(" ")}
       {...(rest as Record<string, unknown>)}
     >
-      <HTabs.List>
+      {/* tabList class goes on the List element; also add overflow-x-auto so
+          many tabs scroll horizontally instead of clipping */}
+      <HTabs.List className={[classNames?.tabList, "overflow-x-auto scrollbar-none"].filter(Boolean).join(" ")}>
         {children}
       </HTabs.List>
     </HTabs>
