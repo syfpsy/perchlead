@@ -342,12 +342,17 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 // We expose ModalContent that renders Backdrop > Container > Dialog > children
 // =============================================================================
 
+type ModalPlacement = "auto" | "top" | "center" | "bottom";
+type ModalScroll = "inside" | "outside";
+
 interface ModalContextValue {
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   size?: ModalContainerProps["size"];
   backdrop?: "transparent" | "opaque" | "blur";
-  scrollBehavior?: "inside" | "outside";
+  scroll?: ModalScroll;
+  placement?: ModalPlacement;
+  isDismissable?: boolean;
 }
 const ModalCtx = React.createContext<ModalContextValue>({});
 
@@ -356,8 +361,9 @@ export interface ModalCompatProps {
   onOpenChange?: (open: boolean) => void;
   size?: ModalContainerProps["size"] | "xs" | "xl" | "2xl" | "3xl" | "4xl" | "5xl";
   backdrop?: "transparent" | "opaque" | "blur";
-  scrollBehavior?: "inside" | "outside";
-  placement?: "top" | "center" | "bottom" | "auto";
+  /** v2 scrollBehavior → v3 scroll */
+  scrollBehavior?: ModalScroll;
+  placement?: ModalPlacement;
   classNames?: Record<string, string>;
   className?: string;
   isDismissable?: boolean;
@@ -391,28 +397,47 @@ export function Modal({
   size,
   backdrop,
   scrollBehavior,
-  placement: _placement,
+  placement,
   classNames: _classNames,
   className: _className,
-  isDismissable: _isDismissable,
+  isDismissable,
   hideCloseButton: _hideCloseButton,
   children,
 }: ModalCompatProps) {
   const normSize = normalizeModalSize(size);
   return (
-    <ModalCtx.Provider value={{ isOpen, onOpenChange, size: normSize, backdrop, scrollBehavior }}>
+    <ModalCtx.Provider
+      value={{
+        isOpen,
+        onOpenChange,
+        size: normSize,
+        backdrop,
+        scroll: scrollBehavior,
+        placement,
+        isDismissable,
+      }}
+    >
       {children}
     </ModalCtx.Provider>
   );
 }
 
 export function ModalContent({ children }: { children?: React.ReactNode | ((onClose: () => void) => React.ReactNode) }) {
-  const { isOpen, onOpenChange, size, backdrop } = React.useContext(ModalCtx);
+  const { isOpen, onOpenChange, size, backdrop, scroll, placement, isDismissable } = React.useContext(ModalCtx);
   const close = React.useCallback(() => onOpenChange?.(false), [onOpenChange]);
   const rendered = typeof children === "function" ? children(close) : children;
   return (
-    <HModal.Backdrop variant={backdrop ?? "opaque"} isOpen={isOpen} onOpenChange={onOpenChange}>
-      <HModal.Container size={size ?? "md"}>
+    <HModal.Backdrop
+      variant={backdrop ?? "opaque"}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      isDismissable={isDismissable}
+    >
+      <HModal.Container
+        size={size ?? "md"}
+        placement={placement ?? "center"}
+        scroll={scroll}
+      >
         <HModal.Dialog>
           {rendered}
         </HModal.Dialog>
@@ -577,6 +602,15 @@ export function SelectItem({ textValue, startContent, endContent, description, c
 
 // =============================================================================
 // Tabs — v2 expected <Tabs><Tab key="x" title="Y" /></Tabs>; v3 uses children as label
+//
+// Two usage patterns supported:
+//   1. Navigation tabs (no panel content):
+//      <Tab key="all" title="All" />
+//      → renders only HTabs.Tab, no HTabs.Panel
+//
+//   2. Content tabs (title + children = panel):
+//      <Tab key="products" title="Products"><ProductsPanel /></Tab>
+//      → renders HTabs.Tab (label) + HTabs.Panel (content)
 // =============================================================================
 
 export interface TabsCompatProps {
@@ -598,6 +632,21 @@ export interface TabsCompatProps {
   isVertical?: boolean;
 }
 
+export interface TabCompatProps extends Omit<V3TabProps, "children" | "title" | "id"> {
+  key?: React.Key;
+  id?: React.Key;
+  title?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+/**
+ * Marker component — `Tabs` reads its props directly via React.Children.
+ * Returns null because Tabs handles its own rendering.
+ */
+export function Tab(_: TabCompatProps): React.ReactElement | null {
+  return null;
+}
+
 export function Tabs({
   variant,
   size,
@@ -612,30 +661,68 @@ export function Tabs({
     variant === "primary" || variant === "secondary"
       ? variant
       : undefined;
+
+  // Collect Tab descriptor elements — each is a <Tab .../> marker
+  const tabs = React.Children.toArray(children) as React.ReactElement<TabCompatProps>[];
+
+  // If any Tab has both a title AND children, we need to render TabPanels
+  const hasPanels = tabs.some((t) => Boolean(t.props.title) && Boolean(t.props.children));
+
   return (
     <HTabs
       variant={v3variant}
       className={[classNames?.base, className].filter(Boolean).join(" ")}
       {...(rest as Record<string, unknown>)}
     >
-      {/* tabList class goes on the List element; also add overflow-x-auto so
-          many tabs scroll horizontally instead of clipping */}
-      <HTabs.List className={[classNames?.tabList, "overflow-x-auto scrollbar-none"].filter(Boolean).join(" ")}>
-        {children}
+      {/* Tab list — labels only */}
+      <HTabs.List
+        className={[
+          classNames?.tabList,
+          "overflow-x-auto scrollbar-none",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {tabs.map((tab) => {
+          // React.Children.toArray prefixes original key with '.$'
+          const id = String(tab.key ?? "").replace(/^\.\$/, "");
+          const {
+            title,
+            children: _panel,
+            id: _id,
+            isDisabled,
+            className: tabCls,
+            ...tabRest
+          } = tab.props as TabCompatProps & { isDisabled?: boolean; className?: string };
+          return (
+            <HTabs.Tab
+              key={id}
+              id={id}
+              isDisabled={isDisabled}
+              className={tabCls}
+              {...(tabRest as Record<string, unknown>)}
+            >
+              {/* title is the tab button label; fall back to children if no title */}
+              {title ?? (hasPanels ? null : tab.props.children)}
+            </HTabs.Tab>
+          );
+        })}
       </HTabs.List>
+
+      {/* Tab panels — only emitted when content tabs are present */}
+      {hasPanels &&
+        tabs.map((tab) => {
+          const id = String(tab.key ?? "").replace(/^\.\$/, "");
+          // Only emit a panel when there's explicit title + panel content
+          if (!tab.props.title || !tab.props.children) return null;
+          return (
+            <HTabs.Panel key={id} id={id}>
+              {tab.props.children}
+            </HTabs.Panel>
+          );
+        })}
     </HTabs>
   );
-}
-
-export interface TabCompatProps extends Omit<V3TabProps, "children" | "title" | "id"> {
-  key?: React.Key;
-  id?: React.Key;
-  title?: React.ReactNode;
-  children?: React.ReactNode;
-}
-
-export function Tab({ title, children, ...rest }: TabCompatProps) {
-  return <HTabs.Tab {...(rest as V3TabProps)}>{title ?? children}</HTabs.Tab>;
 }
 
 // =============================================================================
@@ -843,7 +930,32 @@ export function Switch({
 
 // =============================================================================
 // Chip — v2 props: color, variant, size
+// v3 colors: accent | danger | default | success | warning
+// v3 variants: primary | secondary | soft | tertiary
 // =============================================================================
+
+type V3ChipColor = "accent" | "danger" | "default" | "success" | "warning";
+type V3ChipVariant = "primary" | "secondary" | "soft" | "tertiary";
+
+function mapChipColor(v2?: V2ButtonColor): V3ChipColor {
+  switch (v2) {
+    case "primary": return "accent";
+    case "success": return "success";
+    case "warning": return "warning";
+    case "danger": return "danger";
+    default: return "default";
+  }
+}
+
+function mapChipVariant(v2?: string): V3ChipVariant {
+  switch (v2) {
+    case "solid": case "shadow": return "primary";
+    case "bordered": return "secondary";
+    case "flat": case "faded": return "soft";
+    case "light": case "ghost": return "tertiary";
+    default: return "secondary";
+  }
+}
 
 export interface ChipShimProps {
   color?: V2ButtonColor;
@@ -862,8 +974,8 @@ export interface ChipShimProps {
 }
 
 export function Chip({
-  color: _color,
-  variant: _variant,
+  color,
+  variant,
   size,
   startContent,
   endContent,
@@ -878,7 +990,7 @@ export function Chip({
     const Component = As as React.ElementType;
     return (
       <Component
-        className={[classNames?.base, "chip", className].filter(Boolean).join(" ")}
+        className={[classNames?.base, className].filter(Boolean).join(" ")}
         {...rest}
       >
         {startContent}
@@ -888,7 +1000,12 @@ export function Chip({
     );
   }
   return (
-    <HChip className={[classNames?.base, className].filter(Boolean).join(" ")} size={size}>
+    <HChip
+      className={[classNames?.base, className].filter(Boolean).join(" ")}
+      size={size}
+      color={mapChipColor(color)}
+      variant={mapChipVariant(variant)}
+    >
       {startContent}
       {children}
       {endContent}

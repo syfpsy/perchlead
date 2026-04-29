@@ -14,6 +14,12 @@
   --background: oklch(97.02% 0.0015 155.25);
   --muted: oklch(55.17% 0.0030 155.25);
   --scrollbar: oklch(87.10% 0.0015 155.25);
+  /* Light-mode surface tokens (dark mode overrides these in .dark block) */
+  --surface: oklch(100% 0 0);
+  --overlay: oklch(100% 0 0);
+  --field-background: oklch(100% 0 0);
+  --field-placeholder: oklch(60.00% 0.0020 155.25);
+  --segment: oklch(80.00% 0.0015 155.25);
   --surface-secondary: oklch(95.24% 0.0023 155.25);
   --surface-tertiary: oklch(93.73% 0.0023 155.25);
   --default: oklch(94.00% 0.0015 155.25);
@@ -59,6 +65,20 @@
   --border: oklch(28.00% 0.0015 155.25);
   --separator: oklch(25.00% 0.0015 155.25);
   --overlay-shadow: 0 0 1px 0 rgba(255,255,255,0.15) inset;
+
+  /* Dark mode ink palette — inverted scale so text utilities stay legible.
+     text-ink-900 is near-white, bg-ink-50 is near-black. */
+  --color-ink-50:  oklch(12.00% 0.0015 155.25);
+  --color-ink-100: oklch(17.00% 0.0020 155.25);
+  --color-ink-200: oklch(24.00% 0.0023 155.25);
+  --color-ink-300: oklch(34.00% 0.0025 155.25);
+  --color-ink-400: oklch(48.00% 0.0028 155.25);
+  --color-ink-500: oklch(62.00% 0.0030 155.25);
+  --color-ink-600: oklch(74.00% 0.0028 155.25);
+  --color-ink-700: oklch(83.00% 0.0025 155.25);
+  --color-ink-800: oklch(90.00% 0.0020 155.25);
+  --color-ink-900: oklch(95.00% 0.0015 155.25);
+  --color-ink-950: oklch(97.50% 0.0010 155.25);
 }
 
 /* Custom design tokens */
@@ -129,6 +149,11 @@
   border-radius: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-track { background-color: transparent; }
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar { display: none; }
 
 /* Hairline rows */
 .hairline-row + .hairline-row {

@@ -671,3 +671,50 @@ Vercel deployment `perchlead-8bh978vdx` — **● Ready** (1m build time). App i
 - `aria-label` warnings on react-aria-components primitives.
 - Custom domain (`vercel domains add`).
 - Neon database wiring when ready.
+
+## 2026-04-29 — HeroUI v3 shim hardening + dark mode ink palette
+
+User: "we don't use full heroui 3 pro. we have dark theme contrast problems on leads page. also add lead dialog is not heroui. get into the bottom of this problem and let me know if you need something to make this full heroui 3 [...] yes do it thoroughly and future-proof."
+
+Resumed from previous session where the visual bugs (blank labels, tab overflow) were already fixed in the shim. This pass fixes all remaining shim correctness issues and implements full dark-mode ink palette adaptation.
+
+### Root causes found
+
+**Dark mode contrast failure** — The `--color-ink-*` custom properties in `@theme` are static hex values; no dark-mode override existed. In dark mode `text-ink-900` (#0f1218) on a dark surface (oklch 12%) was near-invisible. All text utilities silently failed WCAG AA.
+
+**Modal dropped props** — `ModalCompatProps` forwarded `placement` and `scrollBehavior` into the context but the `ModalContent` renderer never read them. `isDismissable` was also silently dropped.
+
+**Chip stripped v2 color/variant** — The non-`as` render path discarded `color` and `variant`, always emitting the default chip appearance. v3 color system (accent/danger/default/success/warning) and variant system (primary/secondary/soft/tertiary) needed a mapping layer.
+
+**Tabs Panel content discarded** — Settings page uses `<Tab title="Products"><ProductsPanel /></Tab>` (v2 pattern where Tab.children is the panel body). The old shim only rendered `HTabs.Tab` (the label), silently discarding the panel content. Settings tab panels were empty.
+
+### What changed
+
+**`app/globals.css`**:
+- Light mode `:root` now defines `--surface`, `--overlay`, `--field-background`, `--field-placeholder`, `--segment` (previously these were only defined in `.dark` or left to HeroUI's defaults — caused flash in light mode and inconsistent field styling).
+- `.dark` block gains 11 `--color-ink-*` override declarations that invert the scale: `ink-50` → oklch(12%) near-black, `ink-900` → oklch(95%) near-white. With this single addition, every `text-ink-*` and `bg-ink-*` Tailwind utility automatically adapts to dark mode without touching 25 consumer files.
+- Added `scrollbar-none` `@utility` (was used in the Tabs shim but undefined, silently ignored by some engines).
+
+**`lib/heroui-compat.tsx`**:
+- **Modal**: `ModalCtx` now carries `placement`, `scroll`, `isDismissable`. `Modal` function no longer prefixes these with `_` — all three are stored in context. `ModalContent` passes `placement` (v3 default: `"center"`) to `HModal.Container`, `scroll` to `HModal.Container`, and `isDismissable` to `HModal.Backdrop`. The `scrollBehavior` → `scroll` rename is transparent to callers.
+- **Chip**: Added `mapChipColor()` (primary→accent, success→success, warning→warning, danger→danger, others→default) and `mapChipVariant()` (solid→primary, bordered→secondary, flat/faded→soft, light/ghost→tertiary). Both applied on native `HChip` renders. The `as`-prop path (used by `FilterChip`) is unchanged.
+- **Tabs / Tab** (architectural change): `Tab` is now a "marker component" that returns null. `Tabs` uses `React.Children.toArray()` to read each `Tab`'s props directly:
+  - Extracts `id` from the React-assigned `child.key` (strips `".$"` prefix added by `Children.toArray`).
+  - Renders one `HTabs.Tab` per item in `HTabs.List` (with `isDisabled`, `className` forwarded).
+  - If any Tab has both `title` (label) AND `children` (panel body), also emits `HTabs.Panel id={id}` elements after the list — enabling the Settings page's content-tab pattern.
+  - Navigation tabs that have only `title` (e.g. `/leads` inbox tabs) correctly emit zero panels — no breaking change.
+
+### Build state
+- `npm run typecheck` — 0 errors.
+- `npm run build` — 12 routes, all green.
+
+### Decisions
+- **Scale-inversion for ink palette is the right dark-mode approach** — It keeps the utility naming semantic (high numbers = "heavier" in light mode = "lighter" in dark mode = more prominent). Alternative of adding `dark:text-*` variants to 25 files would have required touching every consumer on each future ink change.
+- **`Tab` as marker component** — cleaner than the alternative of keeping `Tab` as a renderer but using a portal or two-pass render to split label vs. panel. The marker approach is composable and typesafe.
+- **`scrollBehavior` → `scroll` rename is hidden** — callers still use `scrollBehavior` (v2 API). The shim renames on the way to v3.
+
+### What's still open
+- Pro component swaps (KPI.Group, DataGrid, Command, Kanban) — next sprint.
+- `aria-label` warnings from react-aria-components (non-blocking, accessibility polish).
+- Full native v3 migration (remove shim entirely) — each page can be migrated independently when ready; the shim is now stable.
+- Custom domain, Neon wiring.
