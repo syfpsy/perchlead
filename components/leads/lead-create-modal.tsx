@@ -11,13 +11,12 @@ import {
   Select,
   SelectItem,
   Textarea,
-  Tooltip,
 } from "@heroui/react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { Copy } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import { leadDraftSchema, type LeadDraftInput } from "@/lib/validators/lead";
 import { createLead } from "@/lib/services/lead-service";
@@ -50,6 +49,17 @@ const DEFAULT_VALUES: LeadDraftInput = {
   consent_basis: "manual_entry",
 };
 
+/**
+ * Shared inputWrapper classNames applied to every bordered input in this form.
+ * Keeps visual language consistent: same border color, same hover/focus ring,
+ * no extra shadow fighting with HeroUI's default flat shadow.
+ */
+const fieldCn = {
+  inputWrapper:
+    "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+  input: "text-sm text-ink-900",
+} as const;
+
 export function LeadCreateModal({
   open,
   onOpenChange,
@@ -74,7 +84,7 @@ export function LeadCreateModal({
     mode: "onTouched",
   });
 
-  // Reset whenever the modal closes, and focus name on open.
+  // Reset whenever the modal closes, focus name on open.
   useEffect(() => {
     if (open) {
       const t = setTimeout(() => setFocus("name"), 60);
@@ -83,13 +93,11 @@ export function LeadCreateModal({
     reset(DEFAULT_VALUES);
   }, [open, reset, setFocus]);
 
-  // Live duplicate detection — watches the relevant fields and asks the
-  // dedupe service. Pure, runs in render; no debounce needed for ~12 leads.
-  const watched = useWatch({
+  // Live duplicate detection — pure, no debounce needed for the local store.
+  const [emailW, nameW, companyW, websiteW] = useWatch({
     control,
     name: ["email", "name", "company_name", "website"],
   });
-  const [emailW, nameW, companyW, websiteW] = watched;
 
   const duplicates = useMemo(() => {
     if (!emailW && !nameW && !companyW && !websiteW) return [];
@@ -103,6 +111,8 @@ export function LeadCreateModal({
       { leads: snapshot.leads, companies: snapshot.companies },
     ).slice(0, 3);
   }, [emailW, nameW, companyW, websiteW, snapshot.leads, snapshot.companies]);
+
+  const errorCount = Object.keys(errors).length;
 
   const submit = handleSubmit((data) => {
     const result = createLead({
@@ -133,32 +143,71 @@ export function LeadCreateModal({
     <Modal
       isOpen={open}
       onOpenChange={onOpenChange}
-      size="lg"
+      size="xl"
       placement="center"
       backdrop="blur"
+      scrollBehavior="inside"
       classNames={{ base: "rounded-3xl" }}
     >
       <ModalContent>
-        {/* noValidate: defer to Zod, don't let HTML5 type=email block submission */}
+        {/*
+          noValidate: defer all validation to Zod.
+          HTML5's type=email / required can block submission and show native UI
+          that conflicts with HeroUI's error styling — we handle everything ourselves.
+        */}
         <form onSubmit={submit} noValidate>
-          <ModalHeader className="flex flex-col gap-1">
-            <h3 className="text-lg font-semibold tracking-tightish text-ink-900">Add a lead</h3>
-            <p className="text-xs text-ink-500">
-              Just a name is required. Domains and LinkedIn URLs auto-prefix with{" "}
-              <code className="rounded bg-ink-100 px-1 py-0.5 text-[10px]">https://</code>.
+          <ModalHeader className="flex flex-col gap-0.5">
+            <h3 className="text-lg font-semibold tracking-tightish text-ink-900">
+              Add a lead
+            </h3>
+            <p className="text-xs font-normal text-ink-500">
+              Name is the only required field. Bare domains auto-prefix with{" "}
+              <code className="rounded bg-ink-100 px-1 py-0.5 text-[10px]">
+                https://
+              </code>
+              .
             </p>
           </ModalHeader>
-          <ModalBody className="space-y-3">
+
+          <ModalBody className="space-y-3 pb-4 pt-2">
+            {/* ── Identity (full-width, errors safe here) ───────────── */}
+            <Input
+              {...register("name")}
+              label="Full name"
+              isRequired
+              variant="bordered"
+              autoComplete="name"
+              isInvalid={!!errors.name}
+              errorMessage={errors.name?.message}
+              classNames={fieldCn}
+            />
+            {/*
+              inputMode="email" hints mobile keyboards without engaging
+              type="email" browser validation (which overrides noValidate in
+              some HeroUI versions and adds an unwanted native error badge).
+            */}
+            <Input
+              {...register("email")}
+              label="Email address"
+              variant="bordered"
+              inputMode="email"
+              autoComplete="email"
+              isInvalid={!!errors.email}
+              errorMessage={errors.email?.message}
+              classNames={fieldCn}
+            />
+
+            {/* ── Possible duplicate warning ─────────────────────────── */}
             {duplicates.length > 0 && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 px-3 py-2">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-3 py-2.5">
                 <div className="flex items-start gap-2">
-                  <Copy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" />
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-amber-900">
-                      Possible duplicate{duplicates.length === 1 ? "" : "s"}
+                      Possible duplicate{duplicates.length > 1 ? "s" : ""}
                     </p>
                     <p className="text-[11px] text-amber-700">
-                      Save anyway, or open one of these to merge later.
+                      Save anyway, or open one of these and merge later.
                     </p>
                     <ul className="mt-1.5 space-y-1">
                       {duplicates.map((d) => (
@@ -172,8 +221,8 @@ export function LeadCreateModal({
                             className="flex min-w-0 flex-1 items-center gap-2 hover:underline"
                           >
                             <Avatar name={d.lead.name} size="sm" />
-                            <span className="min-w-0 flex-1">
-                              <span className="truncate text-xs font-medium text-ink-900">
+                            <span className="min-w-0">
+                              <span className="block truncate text-xs font-medium text-ink-900">
                                 {d.lead.name}
                               </span>
                               <span className="block truncate text-[11px] text-ink-500">
@@ -181,8 +230,8 @@ export function LeadCreateModal({
                               </span>
                             </span>
                           </Link>
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
-                            {(d.confidence * 100).toFixed(0)}%
+                          <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            {(d.confidence * 100).toFixed(0)}% match
                           </span>
                         </li>
                       ))}
@@ -192,55 +241,81 @@ export function LeadCreateModal({
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {/* ── Optional profile details (2-col, no inline errors) ─── */}
+            {/*
+              No isInvalid / errorMessage on these optional inputs — they're all
+              optional strings, so height stays perfectly uniform across both
+              columns.  Any schema violations surface in the footer count.
+            */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input
-                {...register("name")}
-                label="Name"
-                isRequired
-                autoComplete="name"
-                isInvalid={!!errors.name}
-                errorMessage={errors.name?.message}
+                {...register("title")}
+                label="Job title"
+                variant="bordered"
+                autoComplete="organization-title"
+                classNames={fieldCn}
               />
               <Input
-                {...register("email")}
-                label="Email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
-                isInvalid={!!errors.email}
-                errorMessage={errors.email?.message}
+                {...register("phone")}
+                label="Phone"
+                type="tel"
+                variant="bordered"
+                autoComplete="tel"
+                classNames={fieldCn}
               />
-              <Input {...register("title")} label="Title" autoComplete="organization-title" />
-              <Input {...register("phone")} label="Phone" type="tel" autoComplete="tel" />
-              <Input {...register("company_name")} label="Company" autoComplete="organization" />
+              <Input
+                {...register("company_name")}
+                label="Company"
+                variant="bordered"
+                autoComplete="organization"
+                classNames={fieldCn}
+              />
+              <Input
+                {...register("location")}
+                label="Location"
+                variant="bordered"
+                autoComplete="address-level2"
+                classNames={fieldCn}
+              />
               <Input
                 {...register("website")}
                 label="Website"
+                variant="bordered"
                 placeholder="example.com"
-                autoComplete="url"
                 inputMode="url"
+                autoComplete="url"
+                classNames={fieldCn}
               />
               <Input
                 {...register("linkedin_url")}
                 label="LinkedIn"
+                variant="bordered"
                 placeholder="linkedin.com/in/…"
-                autoComplete="url"
                 inputMode="url"
+                autoComplete="url"
+                classNames={fieldCn}
               />
-              <Input {...register("location")} label="Location" autoComplete="address-level2" />
             </div>
+
+            {/* ── Legal basis ────────────────────────────────────────── */}
             <Controller
               control={control}
               name="consent_basis"
               render={({ field }) => (
                 <Select
                   label="Consent / legal basis"
+                  variant="bordered"
                   selectedKeys={field.value ? [field.value] : []}
                   onSelectionChange={(keys) => {
                     const k = Array.from(keys)[0];
                     field.onChange(k as LeadDraftInput["consent_basis"]);
                   }}
-                  classNames={{ trigger: "border-soft" }}
+                  classNames={{
+                    trigger:
+                      "border-soft bg-white shadow-none data-[hover=true]:border-firm min-h-[54px]",
+                    value: "text-sm",
+                    label: "text-sm",
+                  }}
                 >
                   {CONSENT_OPTIONS.map((opt) => (
                     <SelectItem key={opt.key}>{opt.label}</SelectItem>
@@ -248,21 +323,34 @@ export function LeadCreateModal({
                 </Select>
               )}
             />
+
             <Textarea
               {...register("notes")}
               label="Notes"
+              variant="bordered"
               minRows={2}
+              maxRows={5}
               placeholder="What do you know about this lead?"
+              classNames={{
+                inputWrapper:
+                  "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+                input: "text-sm text-ink-900",
+              }}
             />
           </ModalBody>
+
           <ModalFooter className="flex items-center justify-between gap-2">
-            <Tooltip content="Submit with ⌘↵" placement="top">
-              <p className="text-[11px] text-ink-500">
-                {Object.keys(errors).length > 0
-                  ? `${Object.keys(errors).length} field${Object.keys(errors).length === 1 ? "" : "s"} need fixing`
-                  : "Ready to save"}
-              </p>
-            </Tooltip>
+            <p
+              className={
+                errorCount > 0
+                  ? "text-[11px] font-medium text-danger-600"
+                  : "text-[11px] text-ink-500"
+              }
+            >
+              {errorCount > 0
+                ? `${errorCount} field${errorCount === 1 ? "" : "s"} need${errorCount === 1 ? "s" : ""} fixing`
+                : "Ready to save"}
+            </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="light"

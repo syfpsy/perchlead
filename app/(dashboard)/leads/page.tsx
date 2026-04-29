@@ -9,6 +9,7 @@ import {
   Download,
   Filter as FilterIcon,
   Inbox,
+  KanbanSquare,
   Plus,
   Rows3,
   Rows4,
@@ -41,6 +42,7 @@ import { useToast } from "@/components/ui/toast";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { LeadTable, type Density } from "@/components/leads/lead-table";
+import { LeadBoard } from "@/components/leads/lead-board";
 import { LeadFilterBar } from "@/components/leads/lead-filters";
 import { BulkActionsBar } from "@/components/leads/bulk-actions";
 import { LeadCreateModal } from "@/components/leads/lead-create-modal";
@@ -79,12 +81,15 @@ function LeadsPageInner() {
   const [saveListOpen, setSaveListOpen] = useState(false);
   const [activeListId, setActiveListId] = useState<string>("all");
   const [density, setDensity] = useState<Density>("comfortable");
+  const [viewMode, setViewMode] = useState<"table" | "board">("table");
 
-  // Hydrate density preference from localStorage on mount.
+  // Hydrate display preferences from localStorage on mount.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const saved = window.localStorage.getItem("perchlead.inbox_density");
     if (saved === "comfortable" || saved === "compact") setDensity(saved);
+    const savedView = window.localStorage.getItem("perchlead.inbox_view");
+    if (savedView === "table" || savedView === "board") setViewMode(savedView);
   }, []);
 
   // Sync ?q=, ?new=1, ?view= from the topbar / sidebar / dashboard.
@@ -345,27 +350,53 @@ function LeadsPageInner() {
               </Button>
             )}
             <Tooltip
-              content={density === "comfortable" ? "Switch to compact rows" : "Switch to comfortable rows"}
+              content={viewMode === "board" ? "Switch to table view" : "Switch to board / kanban view"}
               placement="top"
             >
               <Button
                 isIconOnly
                 size="sm"
                 radius="full"
-                variant="light"
-                aria-label="Toggle row density"
+                variant={viewMode === "board" ? "flat" : "light"}
+                color={viewMode === "board" ? "primary" : "default"}
+                aria-label="Toggle board view"
                 className="h-8 w-8 min-w-8"
                 onPress={() => {
-                  const next: Density = density === "comfortable" ? "compact" : "comfortable";
-                  setDensity(next);
+                  const next = viewMode === "board" ? "table" : "board";
+                  setViewMode(next);
+                  if (next === "board") setActiveListId("all");
                   if (typeof window !== "undefined") {
-                    window.localStorage.setItem("perchlead.inbox_density", next);
+                    window.localStorage.setItem("perchlead.inbox_view", next);
                   }
                 }}
               >
-                {density === "comfortable" ? <Rows3 className="h-4 w-4" /> : <Rows4 className="h-4 w-4" />}
+                <KanbanSquare className="h-4 w-4" />
               </Button>
             </Tooltip>
+            {viewMode === "table" && (
+              <Tooltip
+                content={density === "comfortable" ? "Switch to compact rows" : "Switch to comfortable rows"}
+                placement="top"
+              >
+                <Button
+                  isIconOnly
+                  size="sm"
+                  radius="full"
+                  variant="light"
+                  aria-label="Toggle row density"
+                  className="h-8 w-8 min-w-8"
+                  onPress={() => {
+                    const next: Density = density === "comfortable" ? "compact" : "comfortable";
+                    setDensity(next);
+                    if (typeof window !== "undefined") {
+                      window.localStorage.setItem("perchlead.inbox_density", next);
+                    }
+                  }}
+                >
+                  {density === "comfortable" ? <Rows3 className="h-4 w-4" /> : <Rows4 className="h-4 w-4" />}
+                </Button>
+              </Tooltip>
+            )}
             {filteredRows.length > 0 && (
               <Button
                 size="sm"
@@ -431,13 +462,17 @@ function LeadsPageInner() {
           )}
 
           {!isEmpty && !filteredEmpty && (
-            <LeadTable
-              rows={filteredRows}
-              selected={selected}
-              onSelect={select}
-              onRowClick={(row) => router.push(`/leads/${row.lead.id}`)}
-              density={density}
-            />
+            viewMode === "board" ? (
+              <LeadBoard rows={filteredRows} />
+            ) : (
+              <LeadTable
+                rows={filteredRows}
+                selected={selected}
+                onSelect={select}
+                onRowClick={(row) => router.push(`/leads/${row.lead.id}`)}
+                density={density}
+              />
+            )
           )}
         </div>
 
