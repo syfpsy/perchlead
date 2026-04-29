@@ -50,7 +50,6 @@ export function BulkActionsBar({
           key="bulk-bar"
           initial={{ opacity: 0, y: 24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.96 }}
           transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
           exit={{ opacity: 0, y: 16, scale: 0.96, transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } }}
           className="sticky bottom-3 z-20 mx-auto flex w-fit flex-wrap items-center gap-2 rounded-full border border-soft surface-panel px-2.5 py-1.5 text-xs shadow-pop"
