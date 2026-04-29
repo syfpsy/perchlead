@@ -360,7 +360,7 @@ function LeadsPageInner() {
                 variant={viewMode === "board" ? "flat" : "light"}
                 color={viewMode === "board" ? "primary" : "default"}
                 aria-label="Toggle board view"
-                className="h-8 w-8 min-w-8"
+                className="hidden h-8 w-8 min-w-8 md:inline-flex"
                 onPress={() => {
                   const next = viewMode === "board" ? "table" : "board";
                   setViewMode(next);

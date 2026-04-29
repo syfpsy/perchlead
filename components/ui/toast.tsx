@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             role="status"
             className={clsx(
-              "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border bg-white px-4 py-3 shadow-pop animate-fade-in",
+              "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border surface-panel px-4 py-3 shadow-pop animate-fade-in",
               t.tone === "success" && "border-emerald-200",
               t.tone === "error" && "border-red-200",
               t.tone === "info" && "border-ink-200",

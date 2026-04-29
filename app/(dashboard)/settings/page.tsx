@@ -16,6 +16,7 @@ import {
 import { Copy, Database, FileText, Pencil, Plus, RefreshCw, ShieldOff, Tags as TagsIcon, Trash2 } from "lucide-react";
 
 import { PageHeader } from "@/components/ui/page-header";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import { store } from "@/lib/store/data-store";
 import { nid, nowIso } from "@/lib/utils/id";
@@ -73,6 +74,7 @@ function ProductsPanel() {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   function save() {
     if (!name.trim()) return;
@@ -95,7 +97,6 @@ function ProductsPanel() {
   }
 
   function remove(id: string) {
-    if (!window.confirm("Remove this product?")) return;
     store.update((s) => {
       s.products = s.products.filter((p) => p.id !== id);
       s.product_interests = s.product_interests.filter((p) => p.product_id !== id);
@@ -126,7 +127,7 @@ function ProductsPanel() {
               )}
             </div>
             <button
-              onClick={() => remove(p.id)}
+              onClick={() => setConfirmRemoveId(p.id)}
               className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-red-600"
               aria-label="Remove"
             >
@@ -141,6 +142,18 @@ function ProductsPanel() {
         )}
       </ul>
 
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Remove this product?"
+        description="Interest data linked to this product will also be removed."
+        confirmLabel="Remove"
+        isDangerous
+        onConfirm={() => {
+          if (confirmRemoveId) remove(confirmRemoveId);
+          setConfirmRemoveId(null);
+        }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
       <Modal isOpen={open} onOpenChange={setOpen} size="md" placement="center">
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1">
@@ -171,6 +184,7 @@ function TagsPanel() {
   const toast = useToast();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#3a6bff");
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   function add() {
     if (!name.trim()) return;
@@ -188,7 +202,6 @@ function TagsPanel() {
   }
 
   function remove(id: string) {
-    if (!window.confirm("Remove this tag?")) return;
     store.update((s) => {
       s.tags = s.tags.filter((t) => t.id !== id);
       s.leads = s.leads.map((l) => ({ ...l, tag_ids: l.tag_ids.filter((tid) => tid !== id) }));
@@ -230,7 +243,7 @@ function TagsPanel() {
             {t.name}
             <button
               className="text-ink-400 opacity-0 transition group-hover:opacity-100 hover:text-red-600"
-              onClick={() => remove(t.id)}
+              onClick={() => setConfirmRemoveId(t.id)}
               aria-label={`Remove ${t.name}`}
             >
               ×
@@ -238,6 +251,18 @@ function TagsPanel() {
           </li>
         ))}
       </ul>
+      <ConfirmDialog
+        open={confirmRemoveId !== null}
+        title="Remove this tag?"
+        description="The tag will be removed from all leads."
+        confirmLabel="Remove"
+        isDangerous
+        onConfirm={() => {
+          if (confirmRemoveId) remove(confirmRemoveId);
+          setConfirmRemoveId(null);
+        }}
+        onCancel={() => setConfirmRemoveId(null)}
+      />
     </Section>
   );
 }
@@ -419,7 +444,6 @@ function TemplatesPanel() {
   }
 
   function remove(id: string) {
-    if (!window.confirm("Delete this template?")) return;
     store.update((s) => {
       s.email_templates = (s.email_templates ?? []).filter((t) => t.id !== id);
     });
@@ -662,6 +686,7 @@ function TemplateModal({
 function DataPanel() {
   const snapshot = useSnapshot();
   const toast = useToast();
+  const [confirmReset, setConfirmReset] = useState<'seed' | 'clear' | null>(null);
 
   function exportSnapshot() {
     const json = store.exportJson();
@@ -678,14 +703,6 @@ function DataPanel() {
   }
 
   function reset(seed: boolean) {
-    if (
-      !window.confirm(
-        seed
-          ? "Reset to fresh demo data? This will replace your current local data."
-          : "Reset to an empty workspace?",
-      )
-    )
-      return;
     store.reset(seed);
     toast.push({
       tone: "info",
@@ -715,10 +732,10 @@ function DataPanel() {
             <Button radius="lg" variant="bordered" className="border-soft bg-white" onPress={exportSnapshot}>
               Download snapshot
             </Button>
-            <Button radius="lg" color="primary" variant="flat" onPress={() => reset(true)} startContent={<RefreshCw className="h-4 w-4" />}>
+            <Button radius="lg" color="primary" variant="flat" onPress={() => setConfirmReset('seed')} startContent={<RefreshCw className="h-4 w-4" />}>
               Restore demo
             </Button>
-            <Button radius="lg" variant="bordered" className="border-soft bg-white text-red-700" onPress={() => reset(false)}>
+            <Button radius="lg" variant="bordered" className="border-soft bg-white text-red-700" onPress={() => setConfirmReset('clear')}>
               Clear all
             </Button>
           </div>
@@ -761,6 +778,29 @@ function DataPanel() {
           the Pro registry. The component layout is structured so Pro components can drop in directly.
         </p>
       </div>
+      <ConfirmDialog
+        open={confirmReset === 'seed'}
+        title="Restore demo data?"
+        description="This will replace your current local data with a fresh demo set."
+        confirmLabel="Restore demo"
+        onConfirm={() => {
+          reset(true);
+          setConfirmReset(null);
+        }}
+        onCancel={() => setConfirmReset(null)}
+      />
+      <ConfirmDialog
+        open={confirmReset === 'clear'}
+        title="Clear all data?"
+        description="This will wipe your entire local workspace. This cannot be undone."
+        confirmLabel="Clear all"
+        isDangerous
+        onConfirm={() => {
+          reset(false);
+          setConfirmReset(null);
+        }}
+        onCancel={() => setConfirmReset(null)}
+      />
     </Section>
   );
 }

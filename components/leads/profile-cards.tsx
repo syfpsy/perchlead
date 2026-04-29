@@ -31,7 +31,7 @@ export function LeadCard({ children, title, action }: { children: React.ReactNod
   return (
     <section className="rounded-2xl border border-soft surface-panel shadow-soft">
       <header className="flex items-center justify-between border-b border-soft px-5 py-3">
-        <h3 className="text-sm font-semibold tracking-tightish text-ink-800">{title}</h3>
+        <h2 className="text-sm font-semibold tracking-tightish text-ink-800">{title}</h2>
         {action}
       </header>
       <div className="px-5 py-4">{children}</div>
@@ -314,7 +314,7 @@ export function TagsCard({
           <button
             key={t.id}
             onClick={() => onRemove(t.id)}
-            className="group inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2 py-1 text-xs text-ink-800"
+            className="group inline-flex items-center gap-1.5 rounded-full bg-ink-100 px-2 py-1 text-xs text-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             aria-label={`Remove tag ${t.name}`}
           >
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: t.color }} />

@@ -66,7 +66,7 @@ export function BulkActionsBar({
             size="sm"
             radius="full"
             variant="flat"
-            className="h-7 bg-ink-100/70 text-ink-700"
+            className="h-9 bg-ink-100/70 text-ink-700"
             onPress={() => onSetStatus(s)}
           >
             <Check className="h-3 w-3" /> {statusLabel(s)}
@@ -90,7 +90,7 @@ export function BulkActionsBar({
           size="sm"
           radius="full"
           variant="flat"
-          className="h-7 bg-red-50 text-red-700"
+          className="h-9 bg-red-50 text-red-700"
           onPress={onSuppress}
           startContent={<ShieldOff className="h-3 w-3" />}
         >
@@ -109,7 +109,7 @@ export function BulkActionsBar({
           size="sm"
           radius="full"
           variant="flat"
-          className="h-7 bg-zinc-100 text-zinc-700"
+          className="h-9 bg-zinc-100 text-zinc-700"
           onPress={onDelete}
           startContent={<Trash2 className="h-3 w-3" />}
         >
@@ -117,7 +117,7 @@ export function BulkActionsBar({
         </Button>
       </Tooltip>
       <button
-        className="ml-1 rounded-full p-1 text-ink-400 hover:bg-ink-100"
+        className="ml-1 rounded-full p-1 text-ink-400 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
         onClick={onClear}
         aria-label="Clear selection"
       >
@@ -258,7 +258,7 @@ function BulkExportMenu({
           size="sm"
           radius="full"
           variant="flat"
-          className="h-7 bg-emerald-50 text-emerald-700"
+          className="h-9 bg-emerald-50 text-emerald-700"
           onPress={onExport}
           startContent={<Download className="h-3 w-3" />}
         >
@@ -274,7 +274,7 @@ function BulkExportMenu({
           size="sm"
           radius="full"
           variant="flat"
-          className="h-7 bg-emerald-50 text-emerald-700"
+          className="h-9 bg-emerald-50 text-emerald-700"
           startContent={<Download className="h-3 w-3" />}
         >
           Export

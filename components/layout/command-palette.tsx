@@ -24,6 +24,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { store } from "@/lib/store/data-store";
 import { useToast } from "@/components/ui/toast";
+import type { ScoreResult } from "@/types";
 
 type CommandKind = "command" | "lead" | "list";
 
@@ -35,6 +36,7 @@ interface PaletteItem {
   icon: React.ReactNode;
   keywords: string;
   action: () => void;
+  leadData?: { score: number; score_reason: ScoreResult | null | undefined; is_suppressed: boolean };
 }
 
 export function CommandPalette() {
@@ -210,6 +212,7 @@ export function CommandPalette() {
         .join(" ")
         .toLowerCase(),
       action: () => router.push(`/leads/${lead.id}`),
+      leadData: { score: lead.score, score_reason: lead.score_reason, is_suppressed: lead.is_suppressed },
     }));
 
     return [...commands, ...lists, ...leads];
@@ -245,7 +248,7 @@ export function CommandPalette() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open command palette"
-        className="hidden"
+        className="sr-only"
       />
     );
   }
@@ -255,7 +258,7 @@ export function CommandPalette() {
       role="dialog"
       aria-modal="true"
       aria-label="Command palette"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-ink-900/40 px-4 pt-24 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-ink-900/50 px-4 pt-24 animate-fade-in supports-[backdrop-filter]:bg-ink-900/40 supports-[backdrop-filter]:backdrop-blur-sm"
       onClick={() => setOpen(false)}
     >
       <div
@@ -324,8 +327,12 @@ export function CommandPalette() {
                         <span className="block truncate text-[11px] text-ink-500">{item.hint}</span>
                       )}
                     </span>
-                    {item.kind === "lead" && (
-                      <LeadAffordance leadId={item.id.slice(5)} />
+                    {item.kind === "lead" && item.leadData && (
+                      <LeadAffordance
+                        score={item.leadData.score}
+                        scoreReason={item.leadData.score_reason}
+                        isSuppressed={item.leadData.is_suppressed}
+                      />
                     )}
                     {item.kind === "command" && active === idx && (
                       <kbd className="rounded border border-firm bg-white px-1.5 py-0.5 text-[10px] text-ink-500">
@@ -361,18 +368,19 @@ export function CommandPalette() {
   );
 }
 
-function LeadAffordance({ leadId }: { leadId: string }) {
-  const snapshot = useSnapshot();
-  const lead = snapshot.leads.find((l) => l.id === leadId);
-  if (!lead) return null;
+function LeadAffordance({ score, scoreReason, isSuppressed }: {
+  score: number;
+  scoreReason?: ScoreResult | null;
+  isSuppressed: boolean;
+}) {
   return (
     <span className="flex items-center gap-1.5">
-      {lead.is_suppressed && (
+      {isSuppressed && (
         <span title="Do Not Contact" className="text-red-500">
           <ShieldOff className="h-3.5 w-3.5" />
         </span>
       )}
-      <ScoreBadge score={lead.score} reason={lead.score_reason} size="sm" hideTooltip />
+      <ScoreBadge score={score} reason={scoreReason} size="sm" hideTooltip />
     </span>
   );
 }

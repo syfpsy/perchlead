@@ -34,7 +34,7 @@ export function Topbar() {
   }, [router]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-soft bg-white/80 px-4 backdrop-blur md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-soft bg-white/80 px-4 backdrop-blur dark:bg-ink-950/90 md:px-6">
       <form
         role="search"
         className="flex-1 max-w-xl"
@@ -49,12 +49,17 @@ export function Topbar() {
           id="global-search"
           name="q"
           aria-label="Search leads"
-          placeholder="Search leads, companies, tags…  (/ focus · ⌘K palette)"
+          placeholder="Search leads, companies, tags…"
           startContent={<Search className="h-4 w-4 text-ink-400" />}
+          endContent={
+            <span className="hidden items-center gap-1 text-[10px] text-ink-400 sm:flex">
+              <kbd className="rounded border border-firm bg-white px-1 py-0.5">⌘K</kbd>
+            </span>
+          }
           radius="lg"
           variant="bordered"
           classNames={{
-            inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm",
+            inputWrapper: "border-soft bg-white shadow-none data-[hover=true]:border-firm dark:bg-ink-900",
             input: "text-sm",
           }}
         />
@@ -66,7 +71,7 @@ export function Topbar() {
           variant="bordered"
           radius="lg"
           startContent={<Upload className="h-4 w-4" />}
-          className="hidden border-soft bg-white text-sm text-ink-700 sm:inline-flex"
+          className="hidden border-soft bg-white text-sm text-ink-700 dark:bg-ink-900 sm:inline-flex"
         >
           Import
         </Button>

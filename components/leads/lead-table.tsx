@@ -79,7 +79,7 @@ export function LeadTable({
                       onChange={(e) => onSelect(lead.id, e.target.checked)}
                     />
                   </Td>
-                  <Td compact={compact}>
+                  <Td>
                     <div className="flex items-center gap-2.5">
                       <Avatar name={lead.name} size={compact ? "sm" : "md"} />
                       <div className="min-w-0">
@@ -105,7 +105,7 @@ export function LeadTable({
                   <Td>
                     <div className="min-w-0">
                       <div className="truncate font-medium text-ink-800">
-                        {row.company?.name ?? <span className="text-ink-400">No company</span>}
+                        {row.company?.name ?? <span className="text-ink-500">No company</span>}
                       </div>
                       {row.company?.domain && (
                         <div className="truncate text-xs text-ink-500">{row.company.domain}</div>
@@ -119,7 +119,7 @@ export function LeadTable({
                   </Td>
                   <Td>
                     {row.interests.length === 0 ? (
-                      <span className="text-xs text-ink-400">—</span>
+                      <span className="text-xs text-ink-500">—</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {row.interests.slice(0, 2).map(({ product, interest }) => (
@@ -231,7 +231,6 @@ function Td({
   children?: React.ReactNode;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
-  compact?: boolean; // ignored — density is applied at tbody level via arbitrary selectors
 }) {
   return (
     <td onClick={onClick} className={clsx("px-3 py-3 align-middle", className)}>
