@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Button, Tooltip } from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Popover, PopoverContent, PopoverTrigger, Textarea, Tooltip } from "@heroui/react";
 import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Mail, Sparkles, Trash2 } from "lucide-react";
 
 import { useSnapshot } from "@/lib/store/use-snapshot";
@@ -40,6 +40,7 @@ import {
   TimelineCard,
 } from "@/components/leads/profile-cards";
 import { DuplicateWarning } from "@/components/leads/duplicate-warning";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { NotesCard } from "@/components/leads/notes-card";
 import { TasksCard } from "@/components/leads/tasks-card";
 import { EnrichmentModal } from "@/components/leads/enrichment-modal";
@@ -51,7 +52,10 @@ export default function LeadProfilePage() {
   const router = useRouter();
   const snapshot = useSnapshot();
   const toast = useToast();
-  const [statusOpen, setStatusOpen] = useState(false);
+  const [logNote, setLogNote] = useState("");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [confirmMergeId, setConfirmMergeId] = useState<string | null>(null);
+  const [confirmSuppressOpen, setConfirmSuppressOpen] = useState(false);
   const [enrichOpen, setEnrichOpen] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
   const [cursor, setCursor] = useState<InboxCursor | null>(null);
@@ -205,7 +209,7 @@ export default function LeadProfilePage() {
           <Avatar name={lead.name} size="lg" />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tightish text-ink-900 md:text-2xl">
+              <h1 className="font-display text-xl font-normal tracking-tight text-ink-900 md:text-2xl">
                 {lead.name}
               </h1>
               <ScoreBadge score={lead.score} reason={lead.score_reason} size="lg" />
@@ -218,37 +222,33 @@ export default function LeadProfilePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Button
-              variant="bordered"
-              radius="lg"
-              className="border-soft bg-white"
-              endContent={<ChevronDown className="h-4 w-4" />}
-              onPress={() => setStatusOpen((v) => !v)}
+          <Dropdown placement="bottom-end">
+            <DropdownTrigger>
+              <Button
+                variant="bordered"
+                radius="lg"
+                className="border-soft bg-white"
+                endContent={<ChevronDown className="h-4 w-4" />}
+              >
+                <StatusChip status={lead.status} />
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              aria-label="Change lead status"
+              selectionMode="none"
+              onAction={(key) => {
+                setLeadStatus(lead.id, key as LeadStatus);
+                toast.push({ tone: "info", title: `Status: ${statusLabel(key as LeadStatus)}` });
+              }}
+              classNames={{ base: "min-w-[200px]" }}
             >
-              <StatusChip status={lead.status} />
-            </Button>
-            {statusOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-56 rounded-2xl border border-soft surface-panel p-1 shadow-pop">
-                {ALL_STATUSES.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      setLeadStatus(lead.id, s);
-                      setStatusOpen(false);
-                      toast.push({
-                        tone: "info",
-                        title: `Status: ${statusLabel(s)}`,
-                      });
-                    }}
-                    className="flex w-full items-center justify-between rounded-xl px-2 py-1.5 text-left text-sm hover:bg-ink-100"
-                  >
-                    <StatusChip status={s} size="sm" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              {ALL_STATUSES.map((s) => (
+                <DropdownItem key={s} textValue={statusLabel(s)}>
+                  <StatusChip status={s} size="sm" />
+                </DropdownItem>
+              ))}
+            </DropdownMenu>
+          </Dropdown>
 
           <Tooltip content="Run enrichment provider (mock today)" placement="top">
             <Button
@@ -275,30 +275,53 @@ export default function LeadProfilePage() {
               Draft email
             </Button>
           </Tooltip>
-          <Button
-            radius="lg"
-            variant="bordered"
-            className="border-soft bg-white"
-            onPress={() => {
-              addInteraction({ leadId: lead.id, type: "note", note: "Touched by user." });
-              toast.push({ tone: "success", title: "Activity logged" });
-            }}
-          >
-            Log activity
-          </Button>
+          <Popover placement="bottom">
+            <PopoverTrigger>
+              <Button
+                radius="lg"
+                variant="bordered"
+                className="border-soft bg-white"
+              >
+                Log activity
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-3 rounded-2xl">
+              <p className="mb-2 text-xs font-medium text-ink-700">Add a note</p>
+              <Textarea
+                value={logNote}
+                onValueChange={setLogNote}
+                placeholder="What happened with this lead?"
+                minRows={2}
+                maxRows={4}
+                variant="bordered"
+                classNames={{
+                  inputWrapper: "border-soft bg-white shadow-none",
+                  input: "text-sm",
+                }}
+              />
+              <Button
+                size="sm"
+                color="primary"
+                radius="lg"
+                className="mt-2 w-full"
+                isDisabled={!logNote.trim()}
+                onPress={() => {
+                  addInteraction({ leadId: lead.id, type: "note", note: logNote.trim() });
+                  toast.push({ tone: "success", title: "Activity logged" });
+                  setLogNote("");
+                }}
+              >
+                Log note
+              </Button>
+            </PopoverContent>
+          </Popover>
 
           <Button
             radius="lg"
             variant="bordered"
             className="border-soft bg-white text-red-700"
             startContent={<Trash2 className="h-4 w-4" />}
-            onPress={() => {
-              if (window.confirm(`Delete ${lead.name}?`)) {
-                deleteLead(lead.id);
-                toast.push({ tone: "info", title: "Lead deleted" });
-                router.push("/leads");
-              }
-            }}
+            onPress={() => setConfirmDeleteOpen(true)}
           >
             Delete
           </Button>
@@ -307,11 +330,7 @@ export default function LeadProfilePage() {
 
       <DuplicateWarning
         duplicates={duplicates.slice(0, 3)}
-        onMerge={(loserId) => {
-          if (!window.confirm("Merge that record into this one?")) return;
-          mergeLeadsOp(lead.id, loserId);
-          toast.push({ tone: "success", title: "Merged" });
-        }}
+        onMerge={(loserId) => setConfirmMergeId(loserId)}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -368,20 +387,58 @@ export default function LeadProfilePage() {
                 unsuppressLead(lead.id);
                 toast.push({ tone: "success", title: "Removed from suppression list" });
               } else {
-                if (!window.confirm("Mark Do Not Contact? This will block exports for outreach."))
-                  return;
-                suppressLead(lead.id);
-                toast.push({
-                  tone: "info",
-                  title: "Marked Do Not Contact",
-                  description: "Score forced to 0; export will exclude this lead.",
-                });
+                setConfirmSuppressOpen(true);
               }
             }}
           />
         </div>
       </div>
 
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title={`Delete ${lead.name}?`}
+        description="This cannot be undone. All interactions, tasks, and product interests will be removed."
+        confirmLabel="Delete lead"
+        isDangerous
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          deleteLead(lead.id);
+          toast.push({ tone: "info", title: "Lead deleted" });
+          router.push("/leads");
+        }}
+        onCancel={() => setConfirmDeleteOpen(false)}
+      />
+      <ConfirmDialog
+        open={confirmMergeId !== null}
+        title="Merge into this lead?"
+        description="The other record's interactions and data will be absorbed. This cannot be undone."
+        confirmLabel="Merge"
+        onConfirm={() => {
+          if (confirmMergeId) {
+            mergeLeadsOp(lead.id, confirmMergeId);
+            toast.push({ tone: "success", title: "Merged" });
+          }
+          setConfirmMergeId(null);
+        }}
+        onCancel={() => setConfirmMergeId(null)}
+      />
+      <ConfirmDialog
+        open={confirmSuppressOpen}
+        title="Mark as Do Not Contact?"
+        description="This will set score to 0 and block this lead from all exports and outreach."
+        confirmLabel="Mark Do Not Contact"
+        isDangerous
+        onConfirm={() => {
+          setConfirmSuppressOpen(false);
+          suppressLead(lead.id);
+          toast.push({
+            tone: "info",
+            title: "Marked Do Not Contact",
+            description: "Score forced to 0; export will exclude this lead.",
+          });
+        }}
+        onCancel={() => setConfirmSuppressOpen(false)}
+      />
       <EnrichmentModal
         open={enrichOpen}
         lead={lead}

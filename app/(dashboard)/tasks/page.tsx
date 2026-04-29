@@ -8,6 +8,7 @@ import clsx from "clsx";
 
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Avatar } from "@/components/ui/avatar";
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import { deleteTask, setTaskStatus } from "@/lib/services/task-service";
@@ -18,6 +19,7 @@ type Filter = "open" | "overdue" | "due_soon" | "done" | "all";
 export default function TasksPage() {
   const snapshot = useSnapshot();
   const [filter, setFilter] = useState<Filter>("open");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const leadById = useMemo(
     () => new Map(snapshot.leads.map((l) => [l.id, l])),
@@ -130,7 +132,7 @@ export default function TasksPage() {
                   type="button"
                   onClick={() => setTaskStatus(task.id, checked ? "open" : "done")}
                   className={clsx(
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition",
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
                     checked
                       ? "border-emerald-300 bg-emerald-50 text-emerald-600"
                       : "border-firm bg-white text-transparent hover:text-ink-300",
@@ -176,9 +178,9 @@ export default function TasksPage() {
                 </div>
 
                 <button
-                  onClick={() => deleteTask(task.id)}
+                  onClick={() => setConfirmDeleteId(task.id)}
                   aria-label="Delete task"
-                  className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-red-600"
+                  className="rounded-full p-1 text-ink-400 hover:bg-ink-100 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -187,6 +189,17 @@ export default function TasksPage() {
           })}
         </ul>
       )}
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Delete this task?"
+        confirmLabel="Delete"
+        isDangerous
+        onConfirm={() => {
+          if (confirmDeleteId) deleteTask(confirmDeleteId);
+          setConfirmDeleteId(null);
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

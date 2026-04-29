@@ -25,6 +25,7 @@ body {
   font-feature-settings: "cv11", "ss03", "ss01", "ss04", "salt";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  font-family: var(--font-sans, ui-sans-serif);
   background: rgb(var(--color-bg-app));
   color: #0f1218;
 }
@@ -77,9 +78,18 @@ body {
   background: linear-gradient(
     90deg,
     rgb(var(--color-border-soft)) 0%,
-    rgba(255, 255, 255, 0.6) 50%,
+    rgb(var(--color-bg-panel)) 50%,
     rgb(var(--color-border-soft)) 100%
   );
   background-size: 200px 100%;
   animation: shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+  }
+  .skeleton {
+    animation: none;
+  }
 }

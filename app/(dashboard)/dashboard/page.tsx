@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { Button } from "@heroui/react";
-import { ArrowUpRight, Inbox, Sparkles, Upload } from "lucide-react";
+import { ArrowUpRight, Sparkles, Upload } from "lucide-react";
 import clsx from "clsx";
 
 import { PageHeader } from "@/components/ui/page-header";
@@ -86,25 +86,44 @@ export default function DashboardPage() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Stat label="Total leads" value={total} />
-        <Stat label="New" value={newCount} tone="primary" />
-        <Stat label="Qualified" value={qualified} tone="emerald" />
-        <Stat label="Needs follow-up" value={followup} tone="amber" />
+      {/* Action stats — things that need attention */}
+      <section className="grid grid-cols-2 gap-3">
         <Stat
           label="Open tasks"
           value={openTasks.length}
           tone={overdueTasks.length > 0 ? "red" : "default"}
           hint={overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : undefined}
           href="/tasks"
+          prominent
         />
         <Stat
-          label="Stale"
+          label="Stale leads"
           value={staleRows.length}
           tone={staleRows.length > 0 ? "amber" : "default"}
           hint={staleRows.length > 0 ? "SLA breached" : undefined}
           href="/leads?view=stale"
+          prominent
         />
+      </section>
+
+      {/* Pipeline overview — compact inline row */}
+      <section className="flex flex-wrap gap-x-6 gap-y-2 rounded-2xl border border-soft surface-panel px-5 py-3 shadow-soft">
+        {[
+          { label: "Total", value: total },
+          { label: "New", value: newCount, tone: "primary" as const },
+          { label: "Qualified", value: qualified, tone: "emerald" as const },
+          { label: "Follow-up", value: followup, tone: "amber" as const },
+        ].map(({ label, value, tone }) => (
+          <div key={label} className="flex items-center gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-ink-500">{label}</span>
+            <span className={`font-display text-xl font-normal tabular-nums tracking-tight ${
+              tone === "primary" ? "text-primary-700" :
+              tone === "emerald" ? "text-emerald-600" :
+              tone === "amber" ? "text-amber-600" :
+              "text-ink-800"
+            }`}>{value}</span>
+          </div>
+        ))}
       </section>
 
       {/* Pipeline funnel */}
@@ -269,22 +288,6 @@ export default function DashboardPage() {
         </aside>
       </div>
 
-      <section className="rounded-2xl border border-dashed border-firm bg-white/50 p-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-100 text-primary-700">
-            <Inbox className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink-900">Tip</p>
-            <p className="mt-0.5 text-xs text-ink-600">
-              Press <kbd className="rounded border border-firm bg-white px-1 text-[10px]">⌘K</kbd> for the command palette,{" "}
-              <kbd className="rounded border border-firm bg-white px-1 text-[10px]">/</kbd> to focus search,{" "}
-              <kbd className="rounded border border-firm bg-white px-1 text-[10px]">⌘N</kbd> to add a lead, and{" "}
-              <kbd className="rounded border border-firm bg-white px-1 text-[10px]">⌘I</kbd> to jump to import.
-            </p>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
@@ -295,12 +298,14 @@ function Stat({
   tone = "default",
   hint,
   href,
+  prominent,
 }: {
   label: string;
   value: number;
   tone?: "default" | "primary" | "emerald" | "amber" | "red";
   hint?: string;
   href?: string;
+  prominent?: boolean;
 }) {
   const palette = {
     default: "text-ink-900",
@@ -312,15 +317,17 @@ function Stat({
   const inner = (
     <>
       <p className="text-[11px] font-medium uppercase tracking-wider text-ink-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold tabular-nums tracking-tightish ${palette[tone]}`}>
+      <p className={`mt-1 font-display text-2xl font-normal tabular-nums tracking-tight ${palette[tone]}`}>
         {value}
       </p>
       {hint && <p className="text-[11px] text-ink-500">{hint}</p>}
     </>
   );
-  const className =
-    "rounded-2xl border border-soft surface-panel px-4 py-3 shadow-soft" +
-    (href ? " transition hover:border-primary-200 hover:shadow-card" : "");
+  const className = [
+    "rounded-2xl border border-soft surface-panel shadow-soft",
+    prominent ? "px-5 py-5" : "px-4 py-3",
+    href ? "transition hover:border-primary-200 hover:shadow-card" : "",
+  ].join(" ");
   if (href) {
     return (
       <Link href={href} className={className}>
