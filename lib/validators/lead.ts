@@ -1,20 +1,40 @@
 import { z } from "zod";
 
+// Helpers ------------------------------------------------------------------
+
+/** Treat empty strings as undefined so `.optional()` works for HTML inputs. */
+const emptyToUndefined = z
+  .union([z.string(), z.undefined()])
+  .transform((v) => {
+    if (v == null) return undefined;
+    const trimmed = v.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  });
+
+/** Auto-prefix bare domains with https:// on submit. */
+const optionalUrl = emptyToUndefined.transform((v) => {
+  if (!v) return undefined;
+  if (/^https?:\/\//i.test(v)) return v;
+  // If it looks like a domain (contains a dot) and not already a path, prefix.
+  if (/^[\w-]+(\.[\w-]+)+/.test(v)) return `https://${v}`;
+  return v;
+});
+
+/** Optional email — empty string -> undefined, else must be a valid address. */
+const optionalEmail = emptyToUndefined.pipe(z.string().email("Looks malformed").optional());
+
+// Schema -------------------------------------------------------------------
+
 export const leadDraftSchema = z.object({
-  name: z.string().min(1, "Name is required").max(120),
-  email: z
-    .string()
-    .trim()
-    .email("Looks malformed")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
-  phone: z.string().trim().max(40).optional().or(z.literal("")),
-  title: z.string().trim().max(120).optional().or(z.literal("")),
-  company_name: z.string().trim().max(160).optional().or(z.literal("")),
-  website: z.string().trim().max(240).optional().or(z.literal("")),
-  linkedin_url: z.string().trim().max(240).optional().or(z.literal("")),
-  location: z.string().trim().max(160).optional().or(z.literal("")),
-  notes: z.string().trim().max(2000).optional().or(z.literal("")),
+  name: z.string().trim().min(1, "Name is required").max(120),
+  email: optionalEmail,
+  phone: emptyToUndefined.pipe(z.string().max(40).optional()),
+  title: emptyToUndefined.pipe(z.string().max(120).optional()),
+  company_name: emptyToUndefined.pipe(z.string().max(160).optional()),
+  website: optionalUrl.pipe(z.string().max(240).optional()),
+  linkedin_url: optionalUrl.pipe(z.string().max(240).optional()),
+  location: emptyToUndefined.pipe(z.string().max(160).optional()),
+  notes: emptyToUndefined.pipe(z.string().max(2000).optional()),
   consent_basis: z
     .enum([
       "user_provided",

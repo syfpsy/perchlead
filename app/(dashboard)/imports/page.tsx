@@ -16,8 +16,10 @@ import {
   autoMapColumns,
   commitImport,
   importableSources,
+  inferSourceType,
   previewImport,
   type ParsedTable,
+  type SourceTypeGuess,
 } from "@/lib/services/import-service";
 import type { ColumnMapping, ConsentBasis, SourceType } from "@/types";
 import { formatRelative } from "@/lib/utils/format";
@@ -40,6 +42,7 @@ export default function ImportsPage() {
 
   const [step, setStep] = useState<Step>("source");
   const [sourceType, setSourceType] = useState<SourceType>("csv");
+  const [sourceGuess, setSourceGuess] = useState<SourceTypeGuess | null>(null);
   const [parsed, setParsed] = useState<ParsedTable | null>(null);
   const [filename, setFilename] = useState("");
   const [mapping, setMapping] = useState<ColumnMapping>({});
@@ -82,7 +85,12 @@ export default function ImportsPage() {
   ) {
     setParsed(table);
     setFilename(ctx.filename);
-    setSourceType(ctx.sourceType);
+    const guess = inferSourceType(table);
+    setSourceGuess(guess);
+    // If we have a confident guess and the file is a CSV, prefer the guessed
+    // source type (e.g. gumroad) so audit logs and downstream filters get the
+    // right metadata. Paste imports keep `paste`.
+    setSourceType(ctx.sourceType === "paste" ? "paste" : guess.confidence >= 0.5 ? guess.type : "csv");
     setMapping(autoMapColumns(table.headers));
     setStep("map");
   }
@@ -119,6 +127,8 @@ export default function ImportsPage() {
     setFilename("");
     setMapping({});
     setResult(null);
+    setSourceGuess(null);
+    setSourceType("csv");
     setStep("source");
   }
 
@@ -175,6 +185,33 @@ export default function ImportsPage() {
 
       {step === "map" && parsed && (
         <div className="space-y-4">
+          {sourceGuess && sourceGuess.confidence >= 0.5 && (
+            <div className="flex items-start justify-between gap-3 rounded-2xl border border-primary-200 bg-primary-50/50 px-4 py-3 shadow-soft">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-lg bg-primary-100 text-primary-700">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-ink-900">
+                    Detected source: {sourceGuess.label}
+                  </p>
+                  <p className="text-xs text-ink-600">
+                    {sourceGuess.signals.slice(0, 2).join(" · ")} ·{" "}
+                    {(sourceGuess.confidence * 100).toFixed(0)}% confidence
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                radius="full"
+                variant="light"
+                className="text-xs"
+                onPress={() => setSourceType(sourceType === sourceGuess.type ? "csv" : sourceGuess.type)}
+              >
+                {sourceType === sourceGuess.type ? "Use generic CSV instead" : `Use ${sourceGuess.label}`}
+              </Button>
+            </div>
+          )}
           <PreviewSummary
             ok={stats.ok}
             dupe={stats.dupe}

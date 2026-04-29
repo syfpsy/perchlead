@@ -409,6 +409,113 @@ function upsertCompany(
   };
 }
 
+export interface SourceTypeGuess {
+  type: SourceType;
+  label: string;
+  confidence: number; // 0..1
+  signals: string[];
+}
+
+/**
+ * Inspect parsed CSV/paste data to suggest the most likely SourceType.
+ * Pure — keeps the wizard step decoupled from the catalog UI.
+ */
+export function inferSourceType(table: ParsedTable): SourceTypeGuess {
+  const headers = table.headers.map((h) => h.toLowerCase());
+  const sample = table.rows.slice(0, 8);
+  const sampleBlob = sample
+    .map((r) => Object.values(r).join(" ").toLowerCase())
+    .join(" ");
+
+  type Rule = {
+    type: SourceType;
+    label: string;
+    headers?: string[]; // any of these in the headers
+    blob?: string[]; // any of these in the sample values
+    weight?: number;
+  };
+
+  const rules: Rule[] = [
+    {
+      type: "gumroad",
+      label: "Gumroad export",
+      headers: ["gumroad", "purchase_id", "sale_id", "product_permalink"],
+      blob: ["gumroad.com"],
+    },
+    {
+      type: "lemon_squeezy",
+      label: "Lemon Squeezy export",
+      headers: ["lemon_squeezy_id", "lemonsqueezy", "order_identifier"],
+      blob: ["lemonsqueezy.com"],
+    },
+    {
+      type: "paddle",
+      label: "Paddle export",
+      headers: ["paddle_order", "checkout_id", "subscription_id"],
+      blob: ["paddle.com", "checkout.paddle.com"],
+    },
+    {
+      type: "appsumo",
+      label: "AppSumo Buyers",
+      headers: ["appsumo", "deal", "redemption", "license_key"],
+      blob: ["appsumo.com"],
+    },
+    {
+      type: "hubspot",
+      label: "HubSpot contacts",
+      headers: ["hs_object_id", "hubspot_owner_id", "lifecyclestage", "lead_status"],
+      blob: ["hubspot.com"],
+    },
+    {
+      type: "smartlead",
+      label: "Smartlead campaign",
+      headers: ["campaign_id", "smartlead", "smartlead_lead_id"],
+      blob: ["smartlead.ai"],
+    },
+    {
+      type: "instantly",
+      label: "Instantly campaign",
+      headers: ["instantly", "campaign_status", "instantly_lead_id"],
+      blob: ["instantly.ai"],
+    },
+    {
+      type: "google_sheets",
+      label: "Google Sheets export",
+      blob: ["docs.google.com/spreadsheets"],
+    },
+  ];
+
+  let best: SourceTypeGuess = {
+    type: "csv",
+    label: "Generic CSV",
+    confidence: 0.3,
+    signals: ["No fingerprints matched"],
+  };
+
+  for (const rule of rules) {
+    const signals: string[] = [];
+    let score = 0;
+    for (const h of rule.headers ?? []) {
+      if (headers.some((x) => x.includes(h))) {
+        score += 0.5;
+        signals.push(`header contains "${h}"`);
+      }
+    }
+    for (const s of rule.blob ?? []) {
+      if (sampleBlob.includes(s)) {
+        score += 0.4;
+        signals.push(`value contains "${s}"`);
+      }
+    }
+    score = Math.min(1, score);
+    if (score > best.confidence) {
+      best = { type: rule.type, label: rule.label, confidence: score, signals };
+    }
+  }
+
+  return best;
+}
+
 export const importableSources: Array<{ type: SourceType; label: string; helper: string }> = [
   { type: "csv", label: "CSV file", helper: "Upload a CSV exported from any tool." },
   { type: "paste", label: "Paste table", helper: "Paste rows from Excel or Google Sheets." },

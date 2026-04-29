@@ -8,6 +8,7 @@ import { ArrowUpRight, Inbox, Sparkles, Upload } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import { buildLeadRows } from "@/lib/services/search-service";
+import { findStale } from "@/lib/services/staleness-service";
 import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const overdueTasks = openTasks.filter(
     (t) => t.due_date && new Date(t.due_date).getTime() < Date.now(),
   );
+  const staleRows = useMemo(() => findStale(rows), [rows]);
 
   return (
     <div className="space-y-5">
@@ -67,7 +69,7 @@ export default function DashboardPage() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-6">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Total leads" value={total} />
         <Stat label="New" value={newCount} tone="primary" />
         <Stat label="Qualified" value={qualified} tone="emerald" />
@@ -79,7 +81,13 @@ export default function DashboardPage() {
           hint={overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : undefined}
           href="/tasks"
         />
-        <Stat label="Suppressed" value={suppressed} tone="red" />
+        <Stat
+          label="Stale"
+          value={staleRows.length}
+          tone={staleRows.length > 0 ? "amber" : "default"}
+          hint={staleRows.length > 0 ? "SLA breached" : undefined}
+          href="/leads?view=stale"
+        />
       </section>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -3,8 +3,19 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Input, Tab, Tabs } from "@heroui/react";
-import { BookmarkPlus, Download, Filter as FilterIcon, Inbox, Plus, Search, Sparkles, Upload } from "lucide-react";
+import { Button, Input, Tab, Tabs, Tooltip } from "@heroui/react";
+import {
+  BookmarkPlus,
+  Download,
+  Filter as FilterIcon,
+  Inbox,
+  Plus,
+  Rows3,
+  Rows4,
+  Search,
+  Sparkles,
+  Upload,
+} from "lucide-react";
 
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import {
@@ -22,12 +33,13 @@ import { downloadCsv } from "@/lib/services/export-service";
 import { useToast } from "@/components/ui/toast";
 
 import { PageHeader } from "@/components/ui/page-header";
-import { LeadTable } from "@/components/leads/lead-table";
+import { LeadTable, type Density } from "@/components/leads/lead-table";
 import { LeadFilterBar } from "@/components/leads/lead-filters";
 import { BulkActionsBar } from "@/components/leads/bulk-actions";
 import { LeadCreateModal } from "@/components/leads/lead-create-modal";
 import { SaveListModal } from "@/components/leads/save-list-modal";
 import { EmptyState } from "@/components/ui/empty-state";
+import { findStale } from "@/lib/services/staleness-service";
 import { writeInboxCursor } from "@/lib/store/inbox-cursor";
 import type { LeadFilters, LeadStatus } from "@/types";
 
@@ -59,11 +71,21 @@ function LeadsPageInner() {
   const [createOpen, setCreateOpen] = useState(false);
   const [saveListOpen, setSaveListOpen] = useState(false);
   const [activeListId, setActiveListId] = useState<string>("all");
+  const [density, setDensity] = useState<Density>("comfortable");
 
-  // Sync ?q= and ?new=1 from the topbar / sidebar.
+  // Hydrate density preference from localStorage on mount.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem("perchlead.inbox_density");
+    if (saved === "comfortable" || saved === "compact") setDensity(saved);
+  }, []);
+
+  // Sync ?q=, ?new=1, ?view= from the topbar / sidebar / dashboard.
   useEffect(() => {
     const q = params.get("q");
     if (q !== null) setFilters((cur) => ({ ...cur, query: q }));
+    const view = params.get("view");
+    if (view) setActiveListId(view);
     if (params.get("new") === "1") {
       setCreateOpen(true);
       router.replace("/leads");
@@ -72,6 +94,10 @@ function LeadsPageInner() {
   }, [params]);
 
   const allRows = useMemo(() => buildLeadRows(snapshot), [snapshot]);
+  const staleSet = useMemo(
+    () => new Set(findStale(allRows).map((r) => r.lead.id)),
+    [allRows],
+  );
 
   const effectiveFilters: LeadFilters = useMemo(() => {
     if (activeListId === "all") return filters;
@@ -80,16 +106,18 @@ function LeadsPageInner() {
     if (activeListId === "needs_followup") {
       return { ...filters, statuses: ["contacted", "replied"] };
     }
+    if (activeListId === "stale") return filters; // applied via staleSet below
     if (activeListId === "suppressed") return { ...filters, is_suppressed: true };
     const list = snapshot.lists.find((l) => l.id === activeListId);
     if (list) return { ...list.filters_json, query: filters.query };
     return filters;
   }, [activeListId, filters, snapshot.lists]);
 
-  const filteredRows = useMemo(
-    () => sortRows(applyFilters(allRows, effectiveFilters), sortKey),
-    [allRows, effectiveFilters, sortKey],
-  );
+  const filteredRows = useMemo(() => {
+    let rows = applyFilters(allRows, effectiveFilters);
+    if (activeListId === "stale") rows = rows.filter((r) => staleSet.has(r.lead.id));
+    return sortRows(rows, sortKey);
+  }, [allRows, effectiveFilters, sortKey, activeListId, staleSet]);
 
   // Persist the filtered+sorted ID list so j/k nav on the profile respects
   // whatever the user is currently looking at.
@@ -104,9 +132,11 @@ function LeadsPageInner() {
             ? "Qualified"
             : activeListId === "needs_followup"
               ? "Follow up"
-              : activeListId === "suppressed"
-                ? "Suppressed"
-                : list?.name ?? "Leads";
+              : activeListId === "stale"
+                ? "Stale"
+                : activeListId === "suppressed"
+                  ? "Suppressed"
+                  : list?.name ?? "Leads";
     writeInboxCursor({ ids: filteredRows.map((r) => r.lead.id), label });
   }, [filteredRows, activeListId, snapshot.lists]);
 
@@ -235,6 +265,7 @@ function LeadsPageInner() {
               <Tab key="new" title="New" />
               <Tab key="qualified" title="Qualified" />
               <Tab key="needs_followup" title="Follow up" />
+              <Tab key="stale" title={`Stale${staleSet.size > 0 ? ` · ${staleSet.size}` : ""}`} />
               <Tab key="suppressed" title="Suppressed" />
               {snapshot.lists.map((l) => (
                 <Tab key={l.id} title={l.name} />
@@ -272,6 +303,28 @@ function LeadsPageInner() {
                 Save as list
               </Button>
             )}
+            <Tooltip
+              content={density === "comfortable" ? "Switch to compact rows" : "Switch to comfortable rows"}
+              placement="top"
+            >
+              <Button
+                isIconOnly
+                size="sm"
+                radius="full"
+                variant="light"
+                aria-label="Toggle row density"
+                className="h-8 w-8 min-w-8"
+                onPress={() => {
+                  const next: Density = density === "comfortable" ? "compact" : "comfortable";
+                  setDensity(next);
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem("perchlead.inbox_density", next);
+                  }
+                }}
+              >
+                {density === "comfortable" ? <Rows3 className="h-4 w-4" /> : <Rows4 className="h-4 w-4" />}
+              </Button>
+            </Tooltip>
             {filteredRows.length > 0 && (
               <Button
                 size="sm"
@@ -342,6 +395,7 @@ function LeadsPageInner() {
               selected={selected}
               onSelect={select}
               onRowClick={(row) => router.push(`/leads/${row.lead.id}`)}
+              density={density}
             />
           )}
         </div>

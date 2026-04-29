@@ -10,18 +10,23 @@ import { ScoreBadge } from "@/components/ui/score-badge";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatRelative } from "@/lib/utils/format";
 
+export type Density = "comfortable" | "compact";
+
 export function LeadTable({
   rows,
   selected,
   onSelect,
   onRowClick,
+  density = "comfortable",
 }: {
   rows: LeadRow[];
   selected: Set<string>;
   onSelect: (id: string, checked: boolean) => void;
   onRowClick?: (row: LeadRow) => void;
+  density?: Density;
 }) {
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.lead.id));
+  const compact = density === "compact";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-soft surface-panel shadow-soft">
@@ -51,7 +56,7 @@ export function LeadTable({
               <Th className="w-8" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className={clsx(compact && "[&_td]:py-1.5")}>
             {rows.map((row) => {
               const lead = row.lead;
               const isSelected = selected.has(lead.id);
@@ -73,9 +78,9 @@ export function LeadTable({
                       onChange={(e) => onSelect(lead.id, e.target.checked)}
                     />
                   </Td>
-                  <Td>
+                  <Td compact={compact}>
                     <div className="flex items-center gap-2.5">
-                      <Avatar name={lead.name} />
+                      <Avatar name={lead.name} size={compact ? "sm" : "md"} />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="truncate font-medium text-ink-900">
@@ -87,10 +92,12 @@ export function LeadTable({
                             </Tooltip>
                           )}
                         </div>
-                        <div className="truncate text-xs text-ink-500">
-                          {lead.email ?? lead.phone ?? "—"}
-                          {lead.title ? ` · ${lead.title}` : ""}
-                        </div>
+                        {!compact && (
+                          <div className="truncate text-xs text-ink-500">
+                            {lead.email ?? lead.phone ?? "—"}
+                            {lead.title ? ` · ${lead.title}` : ""}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Td>
@@ -205,6 +212,7 @@ function Td({
   children?: React.ReactNode;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
+  compact?: boolean; // ignored — density is applied at tbody level via arbitrary selectors
 }) {
   return (
     <td onClick={onClick} className={clsx("px-3 py-3 align-middle", className)}>

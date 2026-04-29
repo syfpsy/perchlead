@@ -272,3 +272,51 @@ User: "keep building more features, check what the best tools do". Picked the th
 - Enrichment doesn't yet support "enrichment_jobs" persistence (the schema field exists but no UI lists past jobs). For mock it doesn't matter; when a real provider is wired, jobs should be persisted with cost tallies for the budget panel in Settings.
 - Activity page doesn't have a "lead=" query param yet to filter to a single lead. The per-lead profile card covers that today, but a deep-linkable filter would be nicer.
 - `j`/`k` from inbox rows isn't wired — only on the profile. Adding to the inbox would need a "focused row" concept.
+
+## 2026-04-29 — Add-Lead bug fixes · staleness · density · webhooks · smart source detection
+
+User: "bugs on add a lead dialogue. also add more features and enrich the app smartly. be future proof always".
+
+### Bug fixes — Add Lead modal
+
+The dialog had several bugs that conspired to make submission feel broken:
+
+1. **HTML5 vs Zod conflict.** `<input type="email">` triggered native browser validation that silently blocked `<form onSubmit>` before our resolver ran. Fix: `noValidate` on the form, defer to Zod.
+2. **Stale form state across opens.** `reset()` only ran on submit/cancel, not when the user clicked the X or backdrop to close. Fix: `useEffect` resets to `DEFAULT_VALUES` whenever `open` flips false; auto-focuses `name` on open.
+3. **`Select` for consent_basis fought the form.** I was syncing it via `setValue()` + `watch()`, which made it intermittently uncontrolled. Fix: wrapped in `Controller` so react-hook-form owns its state.
+4. **URL fields silently broke.** A user entering "example.com" would store it without protocol; clicking through gave a relative-path 404. Fix: rewrote `lib/validators/lead.ts` with shared `optionalUrl` and `optionalEmail` transforms — empty string → undefined; bare domain → `https://example.com`. Schema is now order-stable: `optional()` runs *after* the transform.
+5. **No autocomplete hints.** Browsers couldn't help fill in name/email/phone/title. Fix: added `autoComplete` + `inputMode` per field.
+6. **No live duplicate awareness.** Users would create dupes without knowing. Fix: `useWatch` on email/name/company/website + `findDuplicates` derivation (pure, runs in render — no debounce needed at MVP scale). Top 3 duplicates render as an amber banner above the form fields with avatars, % match, and a click-through that closes the modal and opens the existing lead.
+7. **Better validation tail.** Modal footer surfaces "N fields need fixing" on the left when there are errors.
+
+### New features (smart, future-proof)
+
+**Stale lead detection** — `lib/services/staleness-service.ts` with tunable per-status SLAs (`new`/`cleaned`/`enriched`: 14d, `qualified`: 7d, `contacted`: 4d, `replied`: 2d; terminal statuses never stale). Pure functions over `LeadRow[]`. Wired into:
+- Dashboard "Stale" KPI (amber when > 0, deep-links to `/leads?view=stale`).
+- Inbox saved-view tab "Stale · N" with N matching the count.
+- The inbox cursor labels stale-tab navigation correctly.
+
+**Inbox density toggle** — `comfortable` ↔ `compact` rows. Persists to `localStorage` (`perchlead.inbox_density`). Implemented with a single Tailwind 3 arbitrary-descendant selector on `<tbody>` (`[&_td]:py-1.5`) so we didn't have to plumb `compact` through every cell. Compact mode also drops the secondary email/title row to keep rows single-line.
+
+**Webhook capture API route** — `POST /api/webhooks/lead` at `app/api/webhooks/lead/route.ts`. Mode-aware: returns 503 with a clear `next_steps` payload when `NEXT_PUBLIC_DATA_MODE=local`, returns 501 in `neon` mode (placeholder until the Neon-backed createLead lands). `GET` returns a self-describing schema doc — useful for partners building integrations. Request validation is in `lib/validators/webhook.ts` with alias support (`name | full_name | first_name + last_name`, `company | organization | company_name`, `website | url`) and a free-form `metadata` object that'll land in `sources.raw_payload_json` when persistence ships. The route handler is intentionally tiny so the Neon swap is a single insert call.
+
+**Smart source-type detection on import** — `inferSourceType(table)` in `lib/services/import-service.ts` fingerprints CSV headers and sample values to identify Gumroad / Lemon Squeezy / Paddle / AppSumo / HubSpot / Smartlead / Instantly / Google Sheets exports. When confidence ≥ 50%, the wizard auto-selects that source type and surfaces a banner ("Detected source: AppSumo Buyers · header contains 'appsumo' · 80% confidence") with a one-click toggle back to generic CSV. The downstream import + audit log records the right source type without the user having to pick from the catalog.
+
+### Decisions
+- **Stale rules are exported** so a future Settings UI (or per-product overrides) can tune them without code changes.
+- **Webhook validator returns 422** on schema failure (Zod-friendly), **400** on bad JSON, **503** on mode mismatch, **501** for the "Neon not implemented yet" placeholder. Distinguishing these makes integration debugging easy.
+- **Source detection happens in `handleParsed` after auto-mapping**, not as a separate stepper step. Keeps the wizard at 3 visible steps (Source → Map → Review → Done).
+- **Live duplicate detection is render-time, not debounced.** With ~12 leads it's free; with 10K+ leads we'd switch to a debounced effect or a server query. The threshold to optimize is well-defined: when the local snapshot grows past ~2K leads.
+- **HTML5 `noValidate` is intentional.** Zod is the single source of truth for validation messaging; relying on browser bubbles produces inconsistent UX across Firefox/Safari/Chrome.
+
+### Build state
+- typecheck 0 errors, lint clean, `npm run build` 13 routes (added `/api/webhooks/lead`).
+- `/leads` 37.2 kB (+3 kB for density toggle + dupe banner).
+- `/dashboard` 6.51 kB (+0.34 kB for stale KPI).
+- `/imports` 18.5 kB (+0.7 kB for source detection banner).
+
+### What's still open
+- Webhook route returns 501 in neon mode until `lib/store/neon-store.ts` lands.
+- Stale-lead service doesn't write a system interaction when something newly tips over the threshold — could be a daily cron job once we have a job runner.
+- Density doesn't have a sync-across-devices story; lives only in localStorage. Will move to a `user_preferences` table when Neon comes online.
+- Source detection rules are hard-coded; a future enhancement would let the user define new rules from a sample of their CSV.
