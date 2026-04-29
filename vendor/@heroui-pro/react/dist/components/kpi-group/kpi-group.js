@@ -1,0 +1,3 @@
+import{useMemo as r,createContext as o,useContext as s}from"react";import{composeSlotClassName as t}from"../../utils/compose.js";import{kpiGroupVariants as a}from"./kpi-group.styles.js";import{jsx as e}from"react/jsx-runtime";const i=/*#__PURE__*/o({}),p=({children:o,className:s,orientation:p,...l})=>{const n=r(()=>a({orientation:p}),[p]);/*#__PURE__*/
+return e(i,{value:{slots:n},children:/*#__PURE__*/e("div",{className:t(n?.base,s),"data-slot":"kpi-group",role:"group",...l,children:o})})},l=({className:r,...o})=>{const{slots:a}=s(i);/*#__PURE__*/
+return e("span",{"aria-hidden":"true",className:t(a?.separator,r),"data-slot":"kpi-group-separator",...o})};export{p as KPIGroupRoot,l as KPIGroupSeparator};
