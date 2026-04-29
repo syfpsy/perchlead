@@ -28,6 +28,7 @@ import { BulkActionsBar } from "@/components/leads/bulk-actions";
 import { LeadCreateModal } from "@/components/leads/lead-create-modal";
 import { SaveListModal } from "@/components/leads/save-list-modal";
 import { EmptyState } from "@/components/ui/empty-state";
+import { writeInboxCursor } from "@/lib/store/inbox-cursor";
 import type { LeadFilters, LeadStatus } from "@/types";
 
 const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
@@ -89,6 +90,25 @@ function LeadsPageInner() {
     () => sortRows(applyFilters(allRows, effectiveFilters), sortKey),
     [allRows, effectiveFilters, sortKey],
   );
+
+  // Persist the filtered+sorted ID list so j/k nav on the profile respects
+  // whatever the user is currently looking at.
+  useEffect(() => {
+    const list = snapshot.lists.find((l) => l.id === activeListId);
+    const label =
+      activeListId === "all"
+        ? "All leads"
+        : activeListId === "new"
+          ? "New leads"
+          : activeListId === "qualified"
+            ? "Qualified"
+            : activeListId === "needs_followup"
+              ? "Follow up"
+              : activeListId === "suppressed"
+                ? "Suppressed"
+                : list?.name ?? "Leads";
+    writeInboxCursor({ ids: filteredRows.map((r) => r.lead.id), label });
+  }, [filteredRows, activeListId, snapshot.lists]);
 
   const isEmpty = allRows.length === 0;
   const filteredEmpty = !isEmpty && filteredRows.length === 0;

@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import { Tooltip } from "@heroui/react";
 import {
   CheckSquare,
-  Inbox,
-  Upload,
-  Layers3,
   Compass,
+  History,
+  Inbox,
+  Layers3,
   LayoutDashboard,
   Settings,
   Sparkles,
+  Upload,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -22,6 +23,7 @@ const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ clas
   { href: "/imports", label: "Import", icon: Upload, tagline: "Bring messy lists in" },
   { href: "/lists", label: "Lists", icon: Layers3, tagline: "Saved views & segments" },
   { href: "/finder", label: "Finder", icon: Compass, tagline: "Discover new leads" },
+  { href: "/activity", label: "Activity", icon: History, tagline: "Audit trail across the workspace" },
   { href: "/settings", label: "Settings", icon: Settings, tagline: "Products, sources, compliance" },
 ];
 

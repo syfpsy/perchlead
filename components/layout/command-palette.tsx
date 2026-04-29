@@ -6,6 +6,7 @@ import {
   CheckSquare,
   Compass,
   Database,
+  History,
   Inbox,
   Layers3,
   LayoutDashboard,
@@ -137,6 +138,14 @@ export function CommandPalette() {
         icon: <Compass className="h-4 w-4" />,
         keywords: "finder discover search",
         action: () => router.push("/finder"),
+      },
+      {
+        id: "cmd:activity",
+        kind: "command",
+        label: "Activity log",
+        icon: <History className="h-4 w-4" />,
+        keywords: "activity audit log history compliance",
+        action: () => router.push("/activity"),
       },
       {
         id: "cmd:settings",

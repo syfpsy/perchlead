@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { Button } from "@heroui/react";
-import { ArrowLeft, ChevronDown, Trash2 } from "lucide-react";
+import { Button, Tooltip } from "@heroui/react";
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
 
 import { useSnapshot } from "@/lib/store/use-snapshot";
 import {
@@ -22,6 +22,8 @@ import {
 } from "@/lib/services/lead-service";
 import { findDuplicates } from "@/lib/services/dedupe-service";
 import { useToast } from "@/components/ui/toast";
+import { getNeighbors, readInboxCursor, type InboxCursor } from "@/lib/store/inbox-cursor";
+import { activityForLead, buildActivityRows } from "@/lib/services/activity-service";
 
 import { Avatar } from "@/components/ui/avatar";
 import { ScoreBadge } from "@/components/ui/score-badge";
@@ -40,6 +42,7 @@ import {
 import { DuplicateWarning } from "@/components/leads/duplicate-warning";
 import { NotesCard } from "@/components/leads/notes-card";
 import { TasksCard } from "@/components/leads/tasks-card";
+import { EnrichmentModal } from "@/components/leads/enrichment-modal";
 import type { LeadStatus } from "@/types";
 
 export default function LeadProfilePage() {
@@ -48,6 +51,46 @@ export default function LeadProfilePage() {
   const snapshot = useSnapshot();
   const toast = useToast();
   const [statusOpen, setStatusOpen] = useState(false);
+  const [enrichOpen, setEnrichOpen] = useState(false);
+  const [cursor, setCursor] = useState<InboxCursor | null>(null);
+
+  useEffect(() => {
+    setCursor(readInboxCursor());
+  }, [params.id]);
+
+  const neighbors = useMemo(
+    () => getNeighbors(cursor, params.id ?? ""),
+    [cursor, params.id],
+  );
+
+  // j/k between filtered leads, e to focus notes (handled in NotesCard via id),
+  // t to add a task, ⌘← / ⌘→ to navigate.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const editing =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+      if (editing) return;
+      if (e.key === "j" || (e.key === "ArrowRight" && (e.metaKey || e.ctrlKey))) {
+        if (neighbors.next) {
+          e.preventDefault();
+          router.push(`/leads/${neighbors.next}`);
+        }
+      } else if (e.key === "k" || (e.key === "ArrowLeft" && (e.metaKey || e.ctrlKey))) {
+        if (neighbors.prev) {
+          e.preventDefault();
+          router.push(`/leads/${neighbors.prev}`);
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        router.push("/leads");
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [neighbors, router]);
 
   const lead = snapshot.leads.find((l) => l.id === params.id);
   const company = lead?.company_id
@@ -109,13 +152,50 @@ export default function LeadProfilePage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-3">
         <Link
           href="/leads"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-500 hover:text-ink-800"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Inbox
         </Link>
+        {cursor && typeof neighbors.index === "number" && (
+          <div className="flex items-center gap-1 text-xs text-ink-500">
+            <Tooltip content={neighbors.prev ? "Previous (k)" : "No previous lead"} placement="top">
+              <Button
+                isIconOnly
+                size="sm"
+                radius="full"
+                variant="bordered"
+                className="h-7 w-7 min-w-7 border-soft bg-white"
+                isDisabled={!neighbors.prev}
+                onPress={() => neighbors.prev && router.push(`/leads/${neighbors.prev}`)}
+                aria-label="Previous lead"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+            <span className="px-2 tabular-nums">
+              <span className="font-medium text-ink-800">{(neighbors.index ?? 0) + 1}</span>
+              <span className="text-ink-400"> / {neighbors.total}</span>
+              {cursor.label && <span className="ml-1.5 text-ink-400">in {cursor.label}</span>}
+            </span>
+            <Tooltip content={neighbors.next ? "Next (j)" : "No next lead"} placement="top">
+              <Button
+                isIconOnly
+                size="sm"
+                radius="full"
+                variant="bordered"
+                className="h-7 w-7 min-w-7 border-soft bg-white"
+                isDisabled={!neighbors.next}
+                onPress={() => neighbors.next && router.push(`/leads/${neighbors.next}`)}
+                aria-label="Next lead"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+          </div>
+        )}
       </div>
 
       <header className="flex flex-col gap-4 rounded-3xl border border-soft surface-panel p-5 shadow-soft md:flex-row md:items-center md:justify-between">
@@ -168,10 +248,21 @@ export default function LeadProfilePage() {
             )}
           </div>
 
+          <Tooltip content="Run enrichment provider (mock today)" placement="top">
+            <Button
+              radius="lg"
+              color="primary"
+              variant="flat"
+              startContent={<Sparkles className="h-4 w-4" />}
+              onPress={() => setEnrichOpen(true)}
+            >
+              Enrich
+            </Button>
+          </Tooltip>
           <Button
             radius="lg"
-            color="primary"
-            variant="flat"
+            variant="bordered"
+            className="border-soft bg-white"
             onPress={() => {
               addInteraction({ leadId: lead.id, type: "note", note: "Touched by user." });
               toast.push({ tone: "success", title: "Activity logged" });
@@ -213,6 +304,7 @@ export default function LeadProfilePage() {
           <ScoreCard score={lead.score} result={lead.score_reason} />
           <TasksCard leadId={lead.id} tasks={tasks} />
           <TimelineCard interactions={interactions} />
+          <LeadActivityCard leadId={lead.id} />
           <NotesCard
             initial={lead.notes ?? null}
             onSave={(value) => {
@@ -273,10 +365,68 @@ export default function LeadProfilePage() {
           />
         </div>
       </div>
+
+      <EnrichmentModal
+        open={enrichOpen}
+        lead={lead}
+        company={company}
+        onOpenChange={setEnrichOpen}
+      />
     </div>
   );
 }
 
 function weight(level: "low" | "medium" | "high") {
   return level === "high" ? 3 : level === "medium" ? 2 : 1;
+}
+
+function LeadActivityCard({ leadId }: { leadId: string }) {
+  const snapshot = useSnapshot();
+  const rows = useMemo(() => activityForLead(buildActivityRows(snapshot), leadId), [snapshot, leadId]);
+  if (!rows.length) return null;
+  return (
+    <section className="rounded-2xl border border-soft surface-panel shadow-soft">
+      <header className="flex items-center justify-between border-b border-soft px-5 py-3">
+        <h3 className="text-sm font-semibold tracking-tightish text-ink-800">Audit trail</h3>
+        <Link
+          href="/activity"
+          className="rounded-full px-2 py-0.5 text-[11px] font-medium text-primary-700 hover:bg-primary-50"
+        >
+          See all activity →
+        </Link>
+      </header>
+      <ul className="divide-y divide-soft px-5">
+        {rows.slice(0, 8).map((row) => (
+          <li key={row.log.id} className="flex items-start justify-between gap-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-xs text-ink-700">
+                <span className="capitalize">{row.verb}</span>
+                <span className="ml-1 rounded-full bg-ink-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-ink-500">
+                  {row.log.entity_type}
+                </span>
+              </p>
+              {row.detail && <p className="mt-0.5 text-[11px] text-ink-500">{row.detail}</p>}
+            </div>
+            <span className="shrink-0 text-[11px] text-ink-400">
+              {new Date(row.log.created_at).toLocaleString(undefined, {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {rows.length > 8 && (
+        <p className="border-t border-soft px-5 py-2 text-[11px] text-ink-400">
+          {rows.length - 8} earlier event{rows.length - 8 === 1 ? "" : "s"} · view all in{" "}
+          <Link href="/activity" className="text-primary-700 hover:underline">
+            Activity
+          </Link>
+          .
+        </p>
+      )}
+    </section>
+  );
 }
